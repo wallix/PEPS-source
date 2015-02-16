@@ -4,7 +4,16 @@
 
 Source code of [MLstate/PEPS](https://github.com/MLstate/PEPS), licensed under the AGPL. This repository contains the source code of PEPS, if you want to build it yourself or join the community.
 
-If you want to deploy PEPS, you should clone the [MLstate/PEPS](https://github.com/MLstate/PEPS) instead which contains the Docker container distribution directly.
+If you just want to use and deploy PEPS, you may not need building from source but instead should go to [MLstate/PEPS](https://github.com/MLstate/PEPS) instead which contains the Docker container distribution directly.
+
+# Building
+
+To build PEPS, you need to:
+
+- install [Opa](https://github.com/MLstate/opalang)
+- compile PEPS by typing make
+- launch with `./peps.exe`
+- install required npm dependencies as told
 
 # Contributing
 
