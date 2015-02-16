@@ -1,0 +1,15 @@
+var htmlToText = require('html-to-text');
+
+/** @externType HtmlToText.options */
+
+/** @register {string, HtmlToText.options -> string} */
+function html2text(html, options) {
+	var wordwrap = options.wordwrap,
+			tables = [];
+	if (options.tables.all) {
+		tables = true;
+	} else {
+		tables = options.tables.select;
+	}
+	return htmlToText.fromString(html, {tables: tables, wordwrap: wordwrap});
+}

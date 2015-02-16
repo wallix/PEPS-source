@@ -1,0 +1,72 @@
+var MailParser = require('mailparser').MailParser;
+
+/** @externType continuation('a) */
+/** @externType MailParser.mail */
+
+function array2list(arr) {
+	arr = typeof arr == "undefined" ? [] : !Array.isArray(arr) ? [arr] : arr;
+	return js2list(arr);
+}
+
+function js2address(email) {
+	name = email.name ? js_some(email.name) : js_none;
+	address = email.address ? email.address : "";
+	return {address: address, name: name};
+}
+
+function js2addresses(emails) {
+	emails = typeof emails == "undefined" ? [] : !Array.isArray(emails) ? [js2address(emails)] : emails.map(js2address);
+	return js2list(emails)
+}
+
+/**
+ * @register {string, (opa[option(MailParser.mail)], continuation(opa[void]) -> void), continuation(opa[void]) -> void}
+ * @cpsBypass
+ */
+function parse(raw, callback, cont) {
+	mailparser = new MailParser();
+	mailparser.on("end", function(mail){
+		try {
+			var subject = typeof mail.subject == "undefined" ? "" : mail.subject,
+					text = typeof mail.text == "undefined" ? "" : mail.text,
+					html = typeof mail.html == "undefined" ? "" : mail.html;
+			var processed = {
+				from: js2addresses(mail.from), to: js2addresses(mail.to), cc: js2addresses(mail.cc), bcc: js2addresses(mail.bcc),
+				subject: subject, text: text, html: html
+			};
+			// Process headers.
+			// Pair of key values must be extracted from the object, and sent to a list.
+			// Values are either simple values or arrays of values, and we want arrays in all cases.
+			var headers = []
+			Object.keys(mail.headers).forEach(function(key) {
+				headers.push({key: key, value: array2list(mail.headers[key])});
+			});
+			processed.headers =	array2list(headers);
+			// Process attachments.
+			// Attachment contents are returned in Buffer values, whereas Opa expects
+			// binary values.
+			var attachments = typeof mail.attachments == "undefined" ? [] : !Array.isArray(mail.attachments) ? [mail.attachments] : mail.attachments;
+			attachments.forEach(function (attachment) {
+				attachment.length = attachment.length ? attachment.length : attachment.content.length;
+				attachment.content = {contents: attachment.content, length: attachment.length};
+				attachment.contentType = attachment.contentType ? attachment.contentType : "application/octet-stream";
+				attachment.contentDisposition = attachment.contentDisposition ? attachment.contentDisposition : "";
+				attachment.fileName = attachment.fileName ? attachment.fileName : "file";
+				attachment.contentId = attachment.contentId ? attachment.contentId : "";
+				attachment.transferEncoding = attachment.transferEncoding ? attachment.transferEncoding : "";
+				attachment.checksum = attachment.checksum ? attachment.checksum : "";
+			});
+			processed.attachments = js2list(attachments)
+			// Return.
+			callback(js_some(processed), ccont(cont, function(){}));
+		} catch (ex) {
+			console.log("MailParser.parse: parsing error: ", ex)
+			callback(js_none, ccont(cont, function(){}));
+		}
+	});
+	mailparser.write(raw);
+	mailparser.end();
+
+	return_(cont, js_void);
+  return;
+}

@@ -1,0 +1,10 @@
+classic:src/controller/message.opa
+classic:src/controller/settings.opa
+classic:src/model/seqno_session.opa
+classic:src/tools/search.opa
+classic:src/view/admin.opa
+classic:src/view/compose.opa
+classic:src/view/label.opa
+classic:src/view/message.opa
+classic:src/view/settings.opa
+classic:test/test.opa
