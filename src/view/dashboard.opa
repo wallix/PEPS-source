@@ -230,7 +230,7 @@ module Dashboard {
         list <+> render_generic("new", "user", "user", "user-o", "danger", User.get_name, key, elts)
       }, summary.adduser, _) |>
       StringMap.fold(function (key, elts, list) {
-        list <+> render_generic("removed", "user", "user", "user-o", "danger", User.get_name, key, elts)
+        list <+> render_generic("left", "user", "user", "user-o", "danger", User.get_name, key, elts)
       }, summary.deluser, _)
     // Return the updated summary.
     if (not(summary.suffixDone))

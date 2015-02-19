@@ -787,7 +787,7 @@ form:not(.form-horizontal) {
   padding-bottom:.2em;
   .fa {
     color:inherit;
-    line-height: 13px;
+    line-height: 16px;
     margin-right:-6px;
     &:hover {text-decoration: none;}
   }
@@ -820,7 +820,7 @@ form:not(.form-horizontal) {
   border-color: @brand-danger-border;
 }
 // Labels
-.label-success, .label-info, .label-danger, .label-warning, .label-blue, .label-primary {
+.label-success, .label-info, .label-danger, .label-blue, .label-primary {
   color: @white;
 }
 .label-primary {
@@ -839,21 +839,23 @@ form:not(.form-horizontal) {
   background-color: @brand-danger;
   border-color: @brand-danger;
 }
-.label-warning {
-  background-color: @brand-warning;
-  border-color: @brand-warning;
-}
 .label-blue {
   background-color: @brand-blue;
   border-color: @brand-blue;
 }
 
-// Labels inverse
-.label-info-inverse, .label-default {
+// Used for personal labels
+.label-warning {
+  color: @brand-warning-text;
+  background-color: @brand-warning-bg;
+  border-color: @brand-warning-bg;
+}
+.label-default, .label-info-inverse {
   color: @brand-info-text;
   background-color: @brand-info-bg;
   border-color: @brand-info-bg;
 }
+// Labels inverse
 .label-blue-inverse {
   color: @brand-blue;
   background-color: @brand-blue-bg;
@@ -869,11 +871,7 @@ form:not(.form-horizontal) {
   background-color: @brand-danger-bg;
   border-color: @brand-danger-bg;
 }
-.label-warning-inverse {
-  color: @brand-warning-text;
-  background-color: @brand-warning-bg;
-  border-color: @brand-warning-bg;
-}
+
 
 // Badge
 // --------------------------------------------------
@@ -968,7 +966,7 @@ form:not(.form-horizontal) {
 // Panels
 // --------------------------------------------------
 .panel {
-  margin: 10px 20px;
+  margin: 8px 20px 20px;
   border-width: 0;
   background: transparent;
   .box-shadow(none);
@@ -1339,7 +1337,7 @@ a.list-group-item {
         margin: 12px;
       }
   }
-  > dl {top:5px;}
+  > dl {top:0;}
   .sidebar-btn + dl {top:(@navbar-height + 2px);}
   > dl {
     position: absolute;
@@ -1401,8 +1399,10 @@ a.list-group-item {
 
     > dt.active {
       > a {
-        color:@brand-primary;
+        color:@gray-dark;
+        font-weight: 500;
         text-decoration: none;
+        background-color:#E3E3E8;
       }
     }
   }
@@ -1707,7 +1707,7 @@ form .pane-heading {
 // List header
 .entries {
   .list-group {
-    margin: 8px 20px;
+    margin: 8px 20px 20px;
     border-radius: 5px;
   }
 }
@@ -1959,6 +1959,7 @@ form .pane-heading {
       margin-top: -4px; //to align with text
       display: inline-block;
     }
+    .dropdown-menu li {display: inline-block;}
   }
   ul.list-unstyled {
     display: inline-block;

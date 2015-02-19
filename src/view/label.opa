@@ -151,11 +151,11 @@ LabelView = {{
             <div class="fcol fcol-lg inputs-list ">
               <label class="radio-inline">
                 <input type="radio" name="category" id="{id}-personal" value="personal" checked="checked"/>
-                <span class="label label-info-inverse">{AppText.Personal()}</span>
+                <span class="label label-default">{AppText.Personal()}</span>
               </label>
               <label class="radio-inline">
                 <input type="radio" name="category" id="{id}-shared" value="shared"/>
-                <span class="label label-warning-inverse">{AppText.shared()}</span>
+                <span class="label label-warning">{AppText.shared()}</span>
               </label>
             </div>
           </div>
@@ -627,7 +627,7 @@ LabelView = {{
       Form.label(
         AppText.Category(), "",
         (if internal then
-          <span class="label label-warning-inverse">{AppText.Internal()}</span>
+          <span class="label label-warning">{AppText.Internal()}</span>
          else
           Radio.list(
           if is_admin then
@@ -639,9 +639,9 @@ LabelView = {{
                onclick=some(radio_onclick)}]
           else
             [{id="personal" value="personal" checked=personal
-           text=<span class="label label-info-inverse">{AppText.Personal()}</span> onclick=some(radio_onclick)},
+           text=<span class="label label-default">{AppText.Personal()}</span> onclick=some(radio_onclick)},
            {id="shared" value="shared" checked=shared
-            text=<span class="label label-warning-inverse">{AppText.shared()}</span>
+            text=<span class="label label-warning">{AppText.shared()}</span>
             onclick=some(radio_onclick)}]
         ))
       ) <+> internet <+>

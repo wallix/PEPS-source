@@ -96,8 +96,8 @@ function edit(current) {
       Form.label(
         @i18n("Type"), "",
         Radio.list([
-          make_radio("keyword", "label-warning-inverse", keyword_type),
-          make_radio("recipient", "label-info-inverse", not(keyword_type))
+          make_radio("keyword", "label-warning", keyword_type),
+          make_radio("recipient", "label-default", not(keyword_type))
         ])
       ) <+>
       <div class="form-group">
@@ -130,10 +130,10 @@ function display(Suggest.suggestion suggestion, show_label) {
 		<div onclick={action_edit}>
 		{ match (suggestion.criterion) {
 			case {~keyword, ...}:
-				<span class="label label-warning-inverse">{@i18n("keyword")}</span>
+				<span class="label label-warning">{@i18n("keyword")}</span>
 				<span class="keyword">{keyword}</span>
 			case {~recipient}:
-				<span class="label label-info-inverse">{@i18n("recipient")}</span>
+				<span class="label label-default">{@i18n("recipient")}</span>
 				<span class="recipient">{recipient}</span>
 		}}
 		</div>
