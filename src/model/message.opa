@@ -809,6 +809,8 @@ module Message {
       // Update folder counts.
       DbSet.iterator(/webmail/messages/status[id == mid and owner != sender]) |>
       Iter.iter(function (status) { Folder.delete_message(status.owner, status) }, _)
+      // Dismiss dashboard notification.
+      Journal.Main.unlog(sender, mid)
       // Lock statuses.
       /webmail/messages/status[id == mid and owner != sender] <- {lock: true}
       true
@@ -822,9 +824,31 @@ module Message {
    */
   function unlock(User.key owner, Message.id mid) {
     if (not(?/webmail/messages/status[~{id: mid, owner}]/lock ? true)) {
-      // Restore folder counts.
-      DbSet.iterator(/webmail/messages/status[id == mid and lock == true]) |>
-      Iter.iter(function (status) { if (status.owner != "") Folder.insert_message(status.owner, status) }, _)
+      // Retrieve status information enough to remake the journal log.
+      info = {
+        date: Date.now(),
+        event: {
+          message: mid, snippet: "",
+          subject: "", from: {unspecified: ""}
+        },
+        owners: []
+      }
+      info =
+        DbSet.iterator(/webmail/messages/status[id == mid and lock == true]) |>
+        Iter.fold(function (status, info) {
+          if (status.owner != "") {
+            // Restore folder counts.
+            Folder.insert_message(status.owner, status)
+            { date: status.created,
+              owners: [status.owner|info.owners],
+              event: {
+                message: mid, snippet: status.snippet,
+                subject: status.subject, from: status.from
+              } }
+          } else info
+        }, _, info)
+      // Restore dashboard notification.
+      Journal.Main.logDated(owner, info.owners, info.event, info.date) |> ignore
       // Unlock statuses.
       /webmail/messages/status[id == mid] <- {lock: false}
     }

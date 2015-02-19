@@ -39,15 +39,15 @@ module AdminController {
     is_admin = Login.is_admin(state)
     allowed = not(Admin.only_admin_can_register()) || is_admin
     if (not(allowed))
-      {failure: <>{AppText.not_allowed_action()}</>}
-    else if (not(check_clearance(state, level)))
-      {failure: <>{AppText.Insufficient_clearance()}</>}
+      Utils.failure(AppText.not_allowed_action(), {unauthorized})
+    else if (Admin.only_admin_can_register() && not(check_clearance(state, level)))
+      Utils.failure(AppText.Insufficient_clearance(), {forbidden})
     else if (String.is_empty(username))
-      {failure: <>{@i18n("Please enter a username")}</>}
+      Utils.failure(@i18n("Please enter a username"), {bad_request})
     else if (String.is_empty(password))
-      {failure: <>{@i18n("Please enter a password")}</>}
+      Utils.failure(@i18n("Please enter a password"), {bad_request})
     else if (User.username_exists(username))
-      {failure: <>{@i18n("The username {username} already exists.")}</>}
+      Utils.failure(@i18n("The username {username} already exists."), {conflict})
     else {
       sp = if (fname == "" || lname == "") "" else " "
       fullname = "{fname}{sp}{lname}"
@@ -85,7 +85,7 @@ module AdminController {
     // Combine the results.
     recursive function combine(res, passwords, list, cbres) {
       match (cbres) {
-       case ~{failure}: import(failure <+> res, passwords, list)
+       case ~{failure}: import([failure|res], passwords, list)
         case {success: _}: import(res, passwords, list)
       }
     }
@@ -121,7 +121,7 @@ module AdminController {
           }
       }
     }
-    import(<></>, [], list)
+    import([], [], list)
   }
 
   protected function get_timeout() { Admin.get_settings().disconnection_timeout }
@@ -150,12 +150,12 @@ module AdminController {
       if (old_settings.domain != new_settings.domain) {
         if (Utils.ask(AppText.Warning(), @i18n("Changing the domain means rewriting all user email addresses, do you wish to continue?"))) {
           log("Domain name set to {new_settings.domain}")
-          Admin.set_settings(new_settings,true)
+          Admin.changeSettings(new_settings,true)
           callback({success: (new_settings.disconnection_timeout, new_settings.disconnection_grace_period, domain)})
         } else
           callback({failure: @i18n("Administrator abort, not changing domain")})
       }else {
-        Admin.set_settings(new_settings,false)
+        Admin.changeSettings(new_settings,false)
         callback({success: (new_settings.disconnection_timeout, new_settings.disconnection_grace_period, domain)})
       }
     }

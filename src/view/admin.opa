@@ -22,40 +22,36 @@ package com.mlstate.webmail.view
 AdminView = {{
 
 
-  register_callback(callback_opt, res) =
-  match res with
-  | {failure=e} ->
-    Notifications.error(@i18n("Registration Failed"), <>{e}</>)
-  | {success=(is_admin,user)} ->
-    do Notifications.success(@i18n("Registration Successful"), <>{@i18n("Congratulations.")}</>)
-    match callback_opt with
-    | {some=cb} -> cb(user)
-    | {none} ->
-      if is_admin then Content.reset()
-      else
-        do Dom.set_value(#loginbox_username, Dom.get_value(#register_username))
-        do Dom.set_value(#loginbox_password, Dom.get_value(#register_password))
-        void
-  end
-
-  @client
-  do_register(cbopt,_) =
-    fname = String.trim( Dom.get_value(#register_first_name) )
-    lname = String.trim( Dom.get_value(#register_last_name) )
-    username = Utils.sanitize( Dom.get_value(#register_username) )
+  /** Register a new user. */
+  @client do_register(callback, _evt) =
+    fname = Dom.get_value(#register_first_name) |> String.trim
+    lname = Dom.get_value(#register_last_name) |> String.trim
+    username = Dom.get_value(#register_username) |> Utils.sanitize
     password = Dom.get_value(#register_password)
     check_password = Dom.get_value(#check_password)
     level = AppConfig.default_level // FIXME
     teams = [] // FIXME
-    if check_password != password then
+    if (check_password != password) then
       Notifications.error(@i18n("Registration"), <>{@i18n("Passwords do not match.")}</>)
     else
-      AdminController.Async.register(fname, lname, username, password, level, teams, register_callback(cbopt, _))
+      AdminController.Async.register(fname, lname, username, password, level, teams,
+        // Client side.
+        | ~{failure} -> Notifications.error(@i18n("Registration Failed"), <>{failure.message}</>)
+        | {success= (admin, user)} ->
+          do Notifications.success(@i18n("Registration Successful"), <>{@i18n("Congratulations.")}</>)
+          match (callback) with
+          | {some= callback} -> callback(user)
+          | {none} ->
+            if admin then Content.reset()
+            else
+              do Dom.set_value(#loginbox_username, Dom.get_value(#register_username))
+              Dom.set_value(#loginbox_password, Dom.get_value(#register_password))
+          end
+      )
 
   @server_private
-  register(state, cb_opt) =
-    if Admin.only_admin_can_register() &&
-       not(Login.is_admin(state)) then <></>
+  register(state, callback) =
+    if (Admin.only_admin_can_register() && not(Login.is_admin(state))) then <></>
     else
       domain = Admin.get_domain()
       <div id=#register class="form-wrap">{
@@ -74,101 +70,106 @@ AdminView = {{
           Form.line({Form.Default.line with label=AppText.password(); id="register_password"; typ="password"; required=true}) <+>
           Form.line({Form.Default.line with label=@i18n("Repeat"); id="check_password"; typ="password"; required=true}) <+>
           <div class="form-group">{
-            WB.Button.make({button=<>{AppText.register()}</> callback=do_register(cb_opt, _)}, [{primary}])
+            WB.Button.make({button=<>{AppText.register()}</> callback=do_register(callback, _)}, [{primary}])
          }</div>
         , false)
       }
       </div>
 
-  @client @async
-  set_settings_callback =
-  | {success=(timeout, grace_period, domain)} ->
-    do Notifications.success(AppText.settings(), <>{@i18n("Timeout {timeout} minutes, Grace period {grace_period} seconds, Domain {domain}")}</>)
-    void
-  | {failure=e} ->
-    do Notifications.error(AppText.settings(), <>{e}</>)
-    void
+  /** {1} General settings (e.g. disconnection timetout, etc.). */
 
-  @client
-  do_set_settings(_) =
-    timeout = Dom.get_value(#disconnection_timeout)
-    grace_period = Dom.get_value(#disconnection_grace_period)
-    logo_name = Dom.get_value(#logo_name)
-    domain_name = Dom.get_value(#domain_name)
-    only_admin_can_register = Dom.is_checked(#only_admin_can_register)
-    match (Parser.int(timeout),Parser.int(grace_period)) with
-    | ({some=timeout},{some=grace_period}) ->
-      settings = {
-        disconnection_timeout = timeout
-        disconnection_grace_period = grace_period
-        domain = String.trim(domain_name)
-        logo = String.trim(logo_name)
-        only_admin_can_register = only_admin_can_register
-      }
-      AdminController.set_settings(settings, set_settings_callback)
-    | _ -> Notifications.error(AppText.settings(), <>{@i18n("Invalid timeout or grace period")}</>)
-    end
+  Settings = {{
 
-  @server_private
-  build_disconnection_timeout(state) =
-    logo_name = AdminController.get_logo_name()
-    domain_name = AdminController.get_domain_name()
-    timeout = AdminController.get_timeout()
-    grace_period = AdminController.get_grace_period()
-    register_enabled = Admin.only_admin_can_register()
-    Utils.panel_default(
-      Utils.panel_heading("PEPS") <+>
-      Utils.panel_body(
-        <form role="form">
-          <div class="form-group">
-            <label>{@i18n("Version")}</label>
-            <p class="form-control-static">{peps_tag}</p>
-          </div>
-          <div class="form-group">
-            <label>{@i18n("Hash")}</label>
-            <p class="form-control-static">{peps_version}</p>
-          </div>
-        </form>
-      )
-    ) <+>
-    Utils.panel_default(
-      Utils.panel_heading(AppText.settings()) <+>
-      Utils.panel_body(
-        Form.wrapper(
-          Form.line({Form.Default.line with label=@i18n("Logo name"); id="logo_name"; value=logo_name}) <+>
-          Form.line({Form.Default.line with label=@i18n("Domain name"); id="domain_name"; value=domain_name}) <+>
-          Form.label(
-            @i18n("Disconnection timeout (in minutes)"), "disconnection_timeout",
-            <input class="form-control" type="number" id=#disconnection_timeout value="{timeout}" min="10"></input>
-          ) <+>
-          Form.label(
-            @i18n("Disconnection grace period (in seconds)"), "disconnection_grace_period",
-            <input class="form-control" type="number" id=#disconnection_grace_period value="{grace_period}" min="10"></input>
-          ) <+>
-          <>
-          <div class="form-group">
-            <div class="checkbox">
-              <label>
-                { if register_enabled then
-                    <input type="checkbox" id=#only_admin_can_register checked="checked"/>
-                  else
-                    <input type="checkbox" id=#only_admin_can_register/>
-                } {@i18n("Only admin can register users")}
-              </label>
+    /** Change general settings. */
+    @client set(_evt) =
+      timeout = Dom.get_value(#disconnection_timeout)
+      grace_period = Dom.get_value(#disconnection_grace_period)
+      logo_name = Dom.get_value(#logo_name)
+      domain_name = Dom.get_value(#domain_name)
+      only_admin_can_register = Dom.is_checked(#only_admin_can_register)
+      match (Parser.int(timeout),Parser.int(grace_period)) with
+      | ({some=timeout}, {some=grace_period}) ->
+        settings = {
+          disconnection_timeout = timeout
+          disconnection_grace_period = grace_period
+          domain = String.trim(domain_name)
+          logo = String.trim(logo_name)
+          only_admin_can_register = only_admin_can_register
+        }
+        AdminController.set_settings(settings,
+          // Client side.
+          | {success= (timeout, grace_period, domain)} ->
+            Notifications.success(
+              AppText.settings(),
+              <>{@i18n("Timeout {timeout} minutes, Grace period {grace_period} seconds, Domain {domain}")}</>
+            )
+          | {failure= err} -> Notifications.error(AppText.settings(), <>{err}</>)
+        )
+      | _ -> Notifications.error(AppText.settings(), <>{@i18n("Invalid timeout or grace period")}</>)
+      end
+
+    @server_private
+    build(state) =
+      logo_name = AdminController.get_logo_name()
+      domain_name = AdminController.get_domain_name()
+      timeout = AdminController.get_timeout()
+      grace_period = AdminController.get_grace_period()
+      register_enabled = Admin.only_admin_can_register()
+      Utils.panel_default(
+        Utils.panel_heading("PEPS") <+>
+        Utils.panel_body(
+          <form role="form">
+            <div class="form-group">
+              <label>{@i18n("Version")}</label>
+              <p class="form-control-static">{peps_tag}</p>
             </div>
-          </div>
-          </> <+>
-          <div class="form-group">{
-            WB.Button.make({button=<>{AppText.save()}</> callback=do_set_settings}, [{primary}])
-            |> Xhtml.add_attribute_unsafe("data-complete-text", AppText.save(), _)
-            |> Xhtml.add_attribute_unsafe("data-loading-text", AppText.saving(), _)
-            |> Xhtml.add_id(some("save_prefs_button"), _)
-          }</div>
-        , false)
-    ))
+            <div class="form-group">
+              <label>{@i18n("Hash")}</label>
+              <p class="form-control-static">{peps_version}</p>
+            </div>
+          </form>
+        )
+      ) <+>
+      Utils.panel_default(
+        Utils.panel_heading(AppText.settings()) <+>
+        Utils.panel_body(
+          Form.wrapper(
+            Form.line({Form.Default.line with label=@i18n("Logo name"); id="logo_name"; value=logo_name}) <+>
+            Form.line({Form.Default.line with label=@i18n("Domain name"); id="domain_name"; value=domain_name}) <+>
+            Form.label(
+              @i18n("Disconnection timeout (in minutes)"), "disconnection_timeout",
+              <input class="form-control" type="number" id=#disconnection_timeout value="{timeout}" min="10"></input>
+            ) <+>
+            Form.label(
+              @i18n("Disconnection grace period (in seconds)"), "disconnection_grace_period",
+              <input class="form-control" type="number" id=#disconnection_grace_period value="{grace_period}" min="10"></input>
+            ) <+>
+            <>
+            <div class="form-group">
+              <div class="checkbox">
+                <label>
+                  { if register_enabled
+                    then <input type="checkbox" id=#only_admin_can_register checked="checked"/>
+                    else <input type="checkbox" id=#only_admin_can_register/>
+                  } {@i18n("Only admin can register users")}
+                </label>
+              </div>
+            </div>
+            </> <+>
+            <div class="form-group">{
+              WB.Button.make({button=<>{AppText.save()}</> callback=Settings.set}, [{primary}])
+              |> Xhtml.add_attribute_unsafe("data-complete-text", AppText.save(), _)
+              |> Xhtml.add_attribute_unsafe("data-loading-text", AppText.saving(), _)
+              |> Xhtml.add_id(some("save_prefs_button"), _)
+            }</div>
+          , false)
+      ))
+
+  }} // END SETTINGS
 
 
-  /** App methods. */
+  /** {1} Applications. */
+
   App = {{
 
     /** Generic callback. */
@@ -188,12 +189,11 @@ AdminView = {{
       </tr></thead>
 
     /**
-     * Validate an application's provider.
+     * Validate an application's URL.
      * The provider must be either '*' or a valid
      * http url.
      */
     @private valid_http(addr) =
-      addr == "*" ||
       match Uri.of_string(addr) with
       | {some=uri} -> Uri.is_valid_http(uri)
       | _ -> false
@@ -273,194 +273,158 @@ AdminView = {{
   }} // END APP
 
 
-  // Bulk accounts
+  /** {1} Bulk accounts. */
 
-  @client
-  do_bulk(_) =
-    list = Dom.get_value(#bulk_accounts)
-    // do Client.alert(%% BslPervasives.memdump %%(list)) // Xhtml.escape_special_chars
-    lines = String.explode("\n", list)
-    (valid, parse_errors) = List.foldi(
-      (i, line, (valid, errors) ->
+  Bulk = {{
+
+    /** Create bulk accounts. */
+    @client register(_evt) =
+      list = Dom.get_value(#bulk_accounts)
+      lines = String.explode("\n", list)
+      (valid, errors) = List.foldi(i, line, (valid, errors) ->
         fields = List.map(String.trim, String.explode_with(";", line, false))
-        match fields
-        [first, last, user, pass, level | teams] ->
+        match (fields) with
+        | [first, last, user, pass, level | teams] ->
           level = Parser.int(level) ? 1
           ((first, last, user, pass, level, teams) +> valid, errors)
-        _ -> (valid, errors <+> <div class="alert alert-warning">{@i18n("Missing field at line {i}")}</div>)
-      ), lines, ([], <></>)
-    )
-    do #bulk_parse_errors <- parse_errors
-    AdminController.register_list(valid, (res ->
-        match res
-        {success=html} ->
-          do #bulk_controller_errors <- html <+> <div class="alert alert-success">{AppText.Done()}</div>
-          void
-        {failure=html} ->
-          void
+        | _ -> (valid, errors <+> <div class="alert alert-warning">{@i18n("Missing field at line {i}")}</div>)
+      , lines, ([], <></>))
+      do #bulk_parse_errors <- errors
+      AdminController.register_list(valid,
+        // Client side.
+        | {success=errors} ->
+          html = List.fold(error, html -> html <+> <>{error.message}</>, errors, <></>)
+          #bulk_controller_errors <- html <+> <div class="alert alert-success">{AppText.Done()}</div>
+        | {failure=_errors} -> void
       )
-    )
 
-  @server_private
-  build_bulk(state) =
-  Utils.panel_default(
-    Utils.panel_heading(@i18n("Bulk import")) <+>
-    Utils.panel_body(
-      <div id="bulk_parse_errors"></div>
-      <div id="bulk_controller_errors"></div>
-      <form role="form">
-        <div class="form-group">
-          <p class="form-control-static">{@i18n("The passwords are optional, and will be automatically generated if needed.")}</p>
-          <label>{@i18n("First name; Last name; Username; Password; Level; [Team1; Team2; ...]")}</label>
-          <textarea id=#bulk_accounts rows="10" cols="80" class="form-control">
-          </textarea>
-        </div>
-        <div class="form-group">
-          {WB.Button.make({button=<>{AppText.create()}</> callback=do_bulk}, [{primary}])
-            |> Xhtml.add_attribute_unsafe("data-complete-text", AppText.create(), _)
-            |> Xhtml.add_attribute_unsafe("data-loading-text", AppText.creating(), _)
-            |> Xhtml.add_id(some("bulk_button"), _)
-          }
-        </div>
-      </form>
-  ))
+    @server_private
+    build(state) =
+      Utils.panel_default(
+        Utils.panel_heading(@i18n("Bulk import")) <+>
+        Utils.panel_body(
+          <div id="bulk_parse_errors"></div>
+          <div id="bulk_controller_errors"></div>
+          <form role="form">
+            <div class="form-group">
+              <p class="form-control-static">{@i18n("The passwords are optional, and will be automatically generated if needed.")}</p>
+              <label>{@i18n("First name; Last name; Username; Password; Level; [Team1; Team2; ...]")}</label>
+              <textarea id=#bulk_accounts rows="10" cols="80" class="form-control">
+              </textarea>
+            </div>
+            <div class="form-group">
+              {WB.Button.make({button=<>{AppText.create()}</> callback=register}, [{primary}])
+                |> Xhtml.add_attribute_unsafe("data-complete-text", AppText.create(), _)
+                |> Xhtml.add_attribute_unsafe("data-loading-text", AppText.creating(), _)
+                |> Xhtml.add_id(some("bulk_button"), _)
+              }
+            </div>
+          </form>
+      ))
 
-  /* Indexing */
+  }} // END BULK
 
-  progress_section =
-    // Can't get this to work...
-    //<div id=#reindex_progress class="progress progress-success progress-striped active"
-    //     role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-    //  <div id=#reindex_progress_bar class="bar" style="width:0%;"></div>
-    //</div>
-    <div class="progress">
-      <progress id=#reindex_progress_bar class="progress-bar progress-bar-success active" role="progressbar"
-              max="100" value="0"></progress>
+  /** {1} Indexing. */
+
+  Indexing = {{
+
+    progressbar =
+      // Can't get this to work...
+      //<div id=#reindex_progress class="progress progress-success progress-striped active"
+      //     role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+      //  <div id=#reindex_progress_bar class="bar" style="width:0%;"></div>
+      //</div>
+      <div class="progress">
+        <progress
+            id="reindex_progress_bar" role="progressbar"
+            class="progress-bar progress-bar-success active"
+            max="100" value="0">
+        </progress>
+      </div>
+
+    /** Update the progress bar. */
+    @client progress(percent: int) =
+      //Dom.set_style(Dom.select_raw_unsafe("#reindex_progress_bar"), [{width={percent=float_of_int(percent)}}])
+      Dom.set_value(#reindex_progress_bar, "{percent}")
+
+    /** Launch the reindexing of part of the index. */
+    @client reindex(kind, btnid, _evt) =
+      do Button.loading(#{btnid})
+      do Dom.show(#reindex_progress_bar)
+      Search.All.reindex(kind, progress, ->
+        // Client side.
+        do Button.reset(#{btnid})
+        do Dom.hide(#reindex_progress_bar)
+        Dom.set_value(#reindex_progress_bar, "0")
+      )
+
+    /** Clear a part of the index. */
+    @client clear(kind, btnid, _evt) =
+      do Button.loading(#{btnid})
+      Search.All.clear(kind, ->
+        // Client side.
+        Button.reset(#{btnid})
+      )
+
+    /** Build an index form line. */
+    actions(kind, title: string, name: string) =
+      reindex =
+        WB.Button.make({
+          button= <><span class="fa fa-repeat-circle-o"></span> {@i18n("Reindex")}</>
+          callback= reindex(kind, "reindex-{name}",_)
+        }, [{default}]) |>
+        Xhtml.add_attribute_unsafe("data-complete-text", @i18n("Reindex"), _) |>
+        Xhtml.add_attribute_unsafe("data-loading-text", @i18n("Indexing..."), _) |>
+        Xhtml.add_id(some("reindex-{name}"), _)
+      clear =
+        WB.Button.make({
+          button= <><span class="fa fa-trash-o"></span> {@i18n("Delete index")}</>
+          callback= clear(kind, "delete-{name}",_)
+        }, [{default}]) |>
+        Xhtml.add_attribute_unsafe("data-complete-text", @i18n("Delete index"), _) |>
+        Xhtml.add_attribute_unsafe("data-loading-text", @i18n("Deleting index..."), _) |>
+        Xhtml.add_id(some("delete-{name}"), _)
+    // Actions line.
+    <div class="form-group">
+      <label class="label-fw">{title}</label>
+      {reindex}{clear}
     </div>
 
-  @client handle_progress(percent:int) =
-    //Dom.set_style(Dom.select_raw_unsafe("#reindex_progress_bar"), [{width={percent=float_of_int(percent)}}])
-    do Dom.set_value(#reindex_progress_bar, "{percent}")
-    void
+    /** Build the indexing panel. */
+    @server_private build(state) =
+      Utils.panel_default(
+        Utils.panel_heading(AppText.Indexing()) <+>
+        Utils.panel_body(
+          <form role="form">
+            <div class="form-group">
+              <p class="form-control-static text-info">{AppText.reindex_help()}</p>
+              <p class="form-control-static">{AppText.reindex_help_small()}</p>
+            </div>
+            {actions({messages}, AppText.emails(), "messages")}
+            {actions({files}, AppText.files(), "files")}
+            {actions({users}, AppText.users(), "users")}
+            {actions({contacts}, AppText.contacts(), "contacts")}
+            <div class="form-group">{progressbar}</div>
+          </form>
+        ))
 
-  @client finish_reindex(btn_id, _) =
-    do Button.reset(#{btn_id})
-    do Dom.hide(#reindex_progress_bar)
-    //do Dom.set_style(Dom.select_raw_unsafe("#reindex_progress_bar"), [{width={percent=0.}}])
-    do Dom.set_value(#reindex_progress_bar, "0")
-    void
-
-  @client finish_delete_index(btn_id, _) =
-    do Button.reset(#{btn_id})
-    void
-
-  @publish @async do_reindexing_server(what, callback:(void -> void)) =
-    do match what with
-      | {messages} -> Search.Message.reindex(handle_progress)
-      | {files} -> Search.File.reextract(handle_progress)
-      | {users} -> Search.User.reindex(handle_progress)
-      | {contacts} -> Search.rebook(handle_progress)
-      end
-    callback(void)
-
-  @publish @async do_delete_indexing_server(what, callback:(void -> void)) =
-    do ignore(match what with
-      | {messages} -> Search.Message.clear()
-      | {files} -> Search.File.clear()
-      | {users} -> Search.User.clear()
-      | {contacts} -> Search.delete_book()
-      end)
-    callback(void)
-
-  @client
-  do_reindexing(what, btn_id, _) =
-    do Button.loading(#{btn_id})
-    do Dom.show(#reindex_progress_bar)
-    do do_reindexing_server(what, finish_reindex(btn_id, _))
-    void
-
-  @client
-  do_delete_indexing(what, btn_id, _) =
-    do Button.loading(#{btn_id})
-    do do_delete_indexing_server(what, finish_delete_index(btn_id, _))
-    void
-
-  @server_private
-  build_indexing(state) =
-    Utils.panel_default(
-      Utils.panel_heading(AppText.Indexing()) <+>
-      Utils.panel_body(
-        <form role="form">
-          <div class="form-group">
-            <p class="form-control-static text-info">{AppText.reindex_help()}</p>
-            <p class="form-control-static">{AppText.reindex_help_small()}</p>
-          </div>
-          <div class="form-group">
-            <label class="label-fw">{AppText.emails()}</label>{
-            (WB.Button.make({button=<><span class="fa fa-repeat-circle-o"></span> {@i18n("Reindex")}</> callback=do_reindexing({messages},"reindex_mails_button",_)}, [{default}])
-            |> Xhtml.add_attribute_unsafe("data-complete-text", @i18n("Reindex emails"), _)
-            |> Xhtml.add_attribute_unsafe("data-loading-text", @i18n("Indexing emails..."), _)
-            |> Xhtml.add_id(some("reindex_mails_button"), _)) <+>
-            (WB.Button.make({button=<><span class="fa fa-trash-o"></span> {@i18n("Delete index")}</> callback=do_delete_indexing({messages},"delete_mails_button",_)}, [{default}])
-            |> Xhtml.add_attribute_unsafe("data-complete-text", @i18n("Delete email index"), _)
-            |> Xhtml.add_attribute_unsafe("data-loading-text", @i18n("Deleting email index..."), _)
-            |> Xhtml.add_id(some("delete_mails_button"), _))
-          }</div>
-          <div class="form-group">
-            <label class="label-fw">{AppText.files()}</label>{
-            (WB.Button.make({button=<><span class="fa fa-repeat-circle-o"></span> {@i18n("Reindex")}</> callback=do_reindexing({files},"reindex_files_button",_)}, [{default}])
-            |> Xhtml.add_attribute_unsafe("data-complete-text", @i18n("Reindex files"), _)
-            |> Xhtml.add_attribute_unsafe("data-loading-text", @i18n("Indexing files..."), _)
-            |> Xhtml.add_id(some("reindex_files_button"), _)) <+>
-            (WB.Button.make({button=<><span class="fa fa-trash-o"></span> {@i18n("Delete index")}</> callback=do_delete_indexing({files},"delete_files_button",_)}, [{default}])
-            |> Xhtml.add_attribute_unsafe("data-complete-text", @i18n("Delete files index"), _)
-            |> Xhtml.add_attribute_unsafe("data-loading-text", @i18n("Deleting files index..."), _)
-            |> Xhtml.add_id(some("delete_files_button"), _))
-          }</div>
-          <div class="form-group">
-            <label class="label-fw">{AppText.users()}</label>{
-            (WB.Button.make({button=<><span class="fa fa-repeat-circle-o"></span> {@i18n("Reindex")}</> callback=do_reindexing({users},"reindex_users_button",_)}, [{default}])
-            |> Xhtml.add_attribute_unsafe("data-complete-text", @i18n("Reindex users"), _)
-            |> Xhtml.add_attribute_unsafe("data-loading-text", @i18n("Indexing users..."), _)
-            |> Xhtml.add_id(some("reindex_users_button"), _)) <+>
-            (WB.Button.make({button=<><span class="fa fa-trash-o"></span> {@i18n("Delete index")}</> callback=do_delete_indexing({users},"delete_users_button",_)}, [{default}])
-            |> Xhtml.add_attribute_unsafe("data-complete-text", @i18n("Delete users index"), _)
-            |> Xhtml.add_attribute_unsafe("data-loading-text", @i18n("Deleting users index..."), _)
-            |> Xhtml.add_id(some("delete_users_button"), _))
-          }</div>
-          <div class="form-group">
-            <label class="label-fw">{AppText.contacts()}</label>{
-            (WB.Button.make({button=<><span class="fa fa-repeat-circle-o"></span> {@i18n("Reindex")}</> callback=do_reindexing({contacts},"reindex_contacts_button",_)}, [{default}])
-            |> Xhtml.add_attribute_unsafe("data-complete-text", @i18n("Reindex contacts"), _)
-            |> Xhtml.add_attribute_unsafe("data-loading-text", @i18n("Indexing contacts..."), _)
-            |> Xhtml.add_id(some("reindex_contacts_button"), _)) <+>
-            (WB.Button.make({button=<><span class="fa fa-trash-o"></span> {@i18n("Delete index")}</> callback=do_delete_indexing({contacts},"delete_contacts_button",_)}, [{default}])
-            |> Xhtml.add_attribute_unsafe("data-complete-text", @i18n("Delete contacts index"), _)
-            |> Xhtml.add_attribute_unsafe("data-loading-text", @i18n("Deleting contacts index..."), _)
-            |> Xhtml.add_id(some("delete_contacts_button"), _))
-          }</div>
-          <div class="form-group">
-            {progress_section}
-          </div>
-        </form>
-      ))
+  }} // END INDEXING
 
   @server
   build(state: Login.state, mode: string, path: Path.t) =
     Content.check_admin(state,
       match (mode) with
-      | "settings" -> build_disconnection_timeout(state)
+      | "settings" -> Settings.build(state)
       | "classification" -> LabelView.build(state, true)
-      | "indexing" -> build_indexing(state)
-      | "bulk" -> build_bulk(state)
+      | "indexing" -> Indexing.build(state)
+      | "bulk" -> Bulk.build(state)
       | "apps" -> App.build(state)
       | _ -> Content.non_existent_resource
       end)
 
+
   /** Return the action associated with a mode. */
-  @private
-  action(mode: string) =
-    // do log("Selected mode: {mode}")
+  @private action(mode: string) =
     match (mode) with
     | "classification" ->
       [{

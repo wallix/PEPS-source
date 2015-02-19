@@ -107,16 +107,18 @@ module PeopleView {
       ]
 
       if (admin) {
-        List.flatten(
-        [ action(mode),
+        List.flatten([
+          action(mode),
           [ { name: "users", icon: "user-o", id: "user", title: AppText.users(), onclick: onclick("users", _) },
-            { name: "teams", icon: "users-o", id: "users", title: AppText.teams(), onclick: onclick("teams", _) }
-          ],
+            { name: "teams", icon: "users-o", id: "users", title: AppText.teams(), onclick: onclick("teams", _) } ],
           contacts
         ])
       }
       else
-        contacts
+        List.flatten([
+          action(mode),
+          contacts
+        ])
     }
   } // END SIDEBAR
 

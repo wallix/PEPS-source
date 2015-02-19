@@ -54,7 +54,7 @@ protected function build_main_page(string url) {
       )
       TopbarView.build(state, urn.mode) else <></> ) <+>
   ( if ((logged && not(User.key_exists(state.key))) || (url == "/register"))
-      WB.Layout.fixed(AdminView.register(state, {none}))
+      WB.Layout.fixed(AdminView.register(state, none))
     else {
       // URN.set(urn): To be done after construction of the page.
       sidebar = SidebarView.build(state, urn.mode)

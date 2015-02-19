@@ -340,9 +340,23 @@ module Journal {
 
     /** Save a journal entry. */
     function Journal.id log(User.key creator, list(Team.key) owners, Journal.Main.event event) {
-      entry = ~{ id: genid(), creator, date: Date.now(), owners, event }
+      logDated(creator, owners, event, Date.now())
+    }
+
+    /** Save a journal entry with an imposed date. */
+    function logDated(User.key creator, list(Team.key) owners, Journal.Main.event event, Date.date date) {
+      entry = ~{ id: genid(), creator, date, owners, event }
       /webmail/journals/main[id == entry.id] <- entry
       entry.id
+    }
+
+    /**
+     * Delete the log associated with the creation of a message. This is necessary to avoid duplicate entries
+     * in the dashboard feed.
+     */
+    function unlog(User.key creator, Message.id mid) {
+      DbSet.iterator(/webmail/journals/main[creator == creator and event.message == mid].{id}) |>
+      Iter.iter(function (entry) { Db.remove(@/webmail/journals/main[id == entry.id]) }, _)
     }
 
     /** Fetch the recent history. */

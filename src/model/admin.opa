@@ -74,33 +74,34 @@ module Admin {
   /** Change the domain, without propagating the changes. */
   function set_domain(string domain) {
     /webmail/settings/domain <- domain
-    cached_settings.invalidate({})
+    settingsCache.invalidate({})
   }
 
-  private cached_settings = {
-    function get_settings() {
-      ?/webmail/settings ? default_settings
-    }
+  private settingsCache =
     AppCache.sized_cache(1, function(void _void) {
-      get_settings()
+      ?/webmail/settings ? default_settings
     })
-  }
 
-  function get_settings() { cached_settings.get(void) }
+
+  function get_settings() { settingsCache.get(void) }
   exposed function get_domain() { get_settings().domain }
   function only_admin_can_register() { get_settings().only_admin_can_register }
 
-  function set_settings(Admin.settings settings, bool update_domain) {
+  /**
+   * Change the admin settings.
+   * @param updateDomain whether to propagate the new domain to all registered users.
+   */
+  function changeSettings(Admin.settings settings, bool updateDomain) {
     // Update domain iff no license.
 
     /webmail/settings <- settings
-    cached_settings.invalidate(void)
+    settingsCache.invalidate(void)
 
-    if (update_domain)
+    if (updateDomain)
       Iter.iter(function (User.t user) {
         if (user.email.address.domain != settings.domain) {
-          new_email = {user.email with address:{user.email.address with domain:settings.domain}}
-          User.set_email(user.key, new_email) |> ignore
+          email = {user.email with address:{user.email.address with domain:settings.domain}}
+          User.set_email(user.key, email) |> ignore
         }
       }, User.iterator())
 

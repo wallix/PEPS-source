@@ -282,11 +282,11 @@ module Content {
           <form role="form" class="form-simple">
             <div class="form-group">
               <label class="control-label" for="domain">{@i18n("Admin Password")}</label>
-              <input id="pass" type="password" class="form-control" placeholder="{@i18n("Password")}">
+              <input id="pass" type="password" class="form-control" placeholder="{@i18n("Password")}"/>
             </div>
             <div class="form-group">
               <label class="control-label" for="domain">{@i18n("Repeat")}</label>
-              <input id="passrepeat" type="password" class="form-control" placeholder="{@i18n("Password repeat")}">
+              <input id="passrepeat" type="password" class="form-control" placeholder="{@i18n("Password repeat")}"/>
             </div>
             <div class="form-group">
               <button type="button" class="btn btn-block btn-primary" onclick={setup_admin}>{@i18n("Next")}</button>

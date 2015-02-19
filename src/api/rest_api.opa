@@ -987,7 +987,7 @@ module RestApi {
           lname = data.lastName
           match (AdminController.register(fname, lname, data.username, data.password, data.level, data.teams)) {
             case {success: (_, user)}: Http.Json.success(user)
-            case ~{failure}: Http.Json.bad_request(failure)
+            case ~{failure}: Http.Json.outcome(~{failure})
           }
         default:
           warning("Users.insert: Malformed body and/or missing fields")

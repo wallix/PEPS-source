@@ -30,6 +30,12 @@ SolrFile = Solr({solr_options with collection : "peps_file"} )
 SolrUser = Solr({solr_options with collection : "peps_user"} )
 SolrContact = Solr({solr_options with collection : "peps_contact"} )
 
+type Search.kind =
+  {messages} or
+  {files} or
+  {users} or
+  {contacts}
+
 module Search {
 
   /** {1} Utils. */
@@ -70,6 +76,33 @@ module Search {
     highlight_snippets : 4,
     highlight_html : { pre : highlighting_pre, post : highlighting_post }
   }
+
+  /** Global operations and search selection. */
+
+  module All {
+
+    exposed @async function void reindex(Search.kind kind, progress, callback) {
+      match (kind) {
+        case {messages}: Search.Message.reindex(progress)
+        case {files}: Search.File.reextract(progress)
+        case {users}: Search.User.reindex(progress)
+        case {contacts}: Search.Contact.reindex(progress)
+      }
+      callback()
+    }
+
+    exposed @async function void clear(Search.kind kind, callback) {
+      match (kind) {
+        case {messages}: Search.Message.clear()
+        case {files}: Search.File.clear()
+        case {users}: Search.User.clear()
+        case {contacts}: Search.Contact.clear()
+      } |> ignore
+      callback()
+    }
+
+  } // END ALL
+
 
   /** {1} Message indexing. */
 
@@ -515,121 +548,130 @@ module Search {
 
   } // END FILE
 
+  /** {1} Contact indexing. */
 
+  module Contact {
 
-  private function indexable_of_contact(Contact.t contact) {
-   ~{ id: contact.id,
-      emails: List.map(function (item) { Email.address_to_string(item.elt) }, contact.info.emails),
-      owner: contact.owner,
-      displayName: UrlEncoding.encode(contact.info.displayName),
-      //name:UrlEncoding.encode(contact.info.name.formatted), // TODO: email_name:...
-      //name: UrlEncoding.encode(contact.info.name),
-      nickname: UrlEncoding.encode(contact.info.nickname),
-      blocked: if (contact.status=={blocked}) "t" else "f" }
-  }
-
-  function book(Contact.t contact) {
-    ic = indexable_of_contact(contact)
-    match (SolrContact.index(ic)) {
-      case ~{success}: ~{success}
-      case ~{failure}:
-        SolrJournal.add_book(ic)
-        ~{failure}
+    /** SOLR options. */
+    private options = { queryoptions with
+      // Field 'id' is already asked for in in mail_query_options.
+      highlight : ["emails", "nickname", "displayName"],
+      highlight_snippets : 4,
+      highlight_html : { pre : highlighting_pre, post : highlighting_post }
     }
-  }
 
-  function unbook(string owner, Email.email email) {
-    //Ansi.jlog("unbook: owner=%c{owner}%d email=%y{Email.to_string(email)}%d")
-    match (SolrContact.delete([("email",Email.to_string_only_address(email)),("owner",owner)])) {
-    case {~success}: {~success};
-    case {~failure}:
-      SolrJournal.remove_book(owner, Email.to_string_only_address(email))
-      {~failure};
+    /** Convert a PEPS contact to an indexable object. */
+    private function indexable(Contact.t contact) {
+     ~{ id: contact.id,
+        emails: List.map(function (item) { Email.address_to_string(item.elt) }, contact.info.emails),
+        owner: contact.owner,
+        displayName: UrlEncoding.encode(contact.info.displayName),
+        //name:UrlEncoding.encode(contact.info.name.formatted), // TODO: email_name:...
+        //name: UrlEncoding.encode(contact.info.name),
+        nickname: UrlEncoding.encode(contact.info.nickname),
+        blocked: if (contact.status=={blocked}) "t" else "f" }
     }
-  }
 
+    /** Index a new contact. */
+    function index(Contact.t contact) {
+      obj = indexable(contact)
+      match (SolrContact.index(obj)) {
+        case ~{success}: ~{success}
+        case ~{failure}:
+          SolrJournal.add_book(obj)
+          ~{failure}
+      }
+    }
+
+    /** Remove an indexed contact. */
+    function unindex(string owner, Email.email email) {
+      match (SolrContact.delete([("emails", Email.to_string_only_address(email)),("owner",owner)])) {
+        case ~{success}: ~{success}
+        case ~{failure}:
+          SolrJournal.remove_book(owner, Email.to_string_only_address(email))
+          ~{failure}
+      }
+    }
+
+    /** Add highlightings to the search results. */
+    private function hightlight(Contact.t contact, highlightings) {
+      function emph(xs) {
+        xs = List.map(function (x) { UrlEncoding.decode(emph(x)) }, xs)
+        match (xs) {
+          case [x]: x
+          default: List.to_string_using("<ul><li>", "...</li><li><strong>...</strong></li></ul>", "...</li><li>", xs)
+        }
+      }
+      cc = @toplevel.Contact.to_client_contact(contact)
+      match (StringMap.get(contact.id, highlightings)) {
+        case {none}: cc
+        case {some: l}:
+          (highlighted_emails, highlighted_name, highlighted_displayName) =
+            List.fold(
+              function ((field, value), (emails, nickname, displayname)) {
+                match (field) {
+                  case "emails": (some(emph(value)), nickname, displayname)
+                  case "nickname": (emails, some(emph(value)), displayname)
+                  case "displayName": (emails, nickname, some(emph(value)))
+                  default: (emails, nickname, displayname)
+                }
+              }, l, (none, none, none))
+          ~{cc with highlighted_emails, highlighted_name, highlighted_displayName}
+      }
+    }
+
+    private function list(Contact.client_contact) fetch(key, list(Contact.id) ids, highlightings) {
+      Iter.fold(function (contact, results) {
+        contact = hightlight(contact, highlightings)
+        [contact|results]
+      }, @toplevel.Contact.iterator(ids), [])
+    }
+
+    /** Solr search amongst indexed contacts. */
+    function search(User.key owner, string query) {
+      if (query == "") {success: []}
+      else {
+        query = SearchQuery.to_string({contacts}, {SearchQuery.parse(query) with ~owner})
+        match (SolrContact.query(query, options)) {
+          case {success: result}:
+            // Retrieve the id of searched contacts.
+            match (result.get("id")) {
+              case {success: contacts}:
+                highlightings = StringMap.From.assoc_list(result.highlightings)
+                {success: fetch(owner, contacts, highlightings)}
+              case ~{failure}: ~{failure}
+            }
+          case ~{failure}: ~{failure}
+        }
+      }
+    }
+
+    /** Remove all indexed contacts. */
+    function clear() {
+      SolrJournal.clear_book()
+      SolrContact.delete([("*","*")])
+    }
+
+    /** Rebuild the index. */
+    function reindex((int -> void) progress) {
+      match (clear()) {
+        case {success: _}:
+          total = @toplevel.Contact.count()
+          contacts = DbSet.iterator(/webmail/addrbook/contacts)
+          Iter.fold(function (contact, (i,lp,v)) {
+            index(contact) |> ignore
+            prog = (i*100) / total
+            (i+1, prog, if (prog != lp) progress(prog))
+          }, contacts, (1, 1, void)).f3
+
+        case ~{failure}:
+          error("Contact.reindex: {@i18n("failed to remove Solr contact")} {failure}")
+      }
+    }
+
+  } // END CONTACT
+
+  /** ??? */
   function finalize_index() { void }
 
-  private contact_query_options = { queryoptions with
-    // Field 'id' is already asked for in in mail_query_options.
-    highlight : ["emails", "nickname", "displayName"],
-    highlight_snippets : 4,
-    highlight_html : { pre : highlighting_pre, post : highlighting_post }
-  }
-
-  private function contact_with_highlighting(Contact.t contact, highlightings) {
-    function emph(xs) {
-      xs = List.map(function (x) { UrlEncoding.decode(emph(x)) }, xs)
-      match (xs) {
-        case [x]: x
-        default: List.to_string_using("<ul><li>", "...</li><li><strong>...</strong></li></ul>", "...</li><li>", xs)
-      }
-    }
-    cc = Contact.to_client_contact(contact)
-    match (StringMap.get(contact.id, highlightings)) {
-      case {none}: cc
-      case {some: l}:
-        (highlighted_emails, highlighted_name, highlighted_displayName) =
-          List.fold(
-            function ((field, value), (emails, nickname, displayname)) {
-              match (field) {
-                case "emails": (some(emph(value)), nickname, displayname)
-                case "nickname": (emails, some(emph(value)), displayname)
-                case "displayName": (emails, nickname, some(emph(value)))
-                default: (emails, nickname, displayname)
-              }
-            }, l, (none, none, none))
-        ~{cc with highlighted_emails, highlighted_name, highlighted_displayName}
-    }
-  }
-
-  private function list(Contact.client_contact) get_contacts_from_db(key, list(Contact.id) ids, highlightings) {
-    function fold(contact, ccs) {
-      cc = contact_with_highlighting(contact, highlightings)
-      [cc|ccs]
-    }
-    iter(Contact.t) cs = Contact.iterator(ids)
-    Iter.fold(fold, cs, [])
-  }
-
-  /** Solr search amongst indexed contacts. */
-  function search_contacts(User.key owner, string query) {
-    if (query == "") {success: []}
-    else {
-      cquery = SearchQuery.to_string({contacts}, {SearchQuery.parse(query) with ~owner})
-      match (SolrContact.query(cquery, contact_query_options)) {
-        case {success: result}:
-          // Retrieve the id of searched contacts.
-          match (result.get("id")) {
-            case {success: contacts}:
-              highlightings = StringMap.From.assoc_list(result.highlightings)
-              {success: get_contacts_from_db(owner, contacts, highlightings)}
-            case ~{failure}: ~{failure}
-          }
-        case ~{failure}: ~{failure}
-      }
-    }
-  }
-
-  function delete_book() {
-    SolrJournal.clear_book()
-    SolrContact.delete([("*","*")])
-  }
-
-  function rebook((int -> void) progress) {
-    match (delete_book()) {
-      case {success: _}:
-        total = Contact.count()
-        contacts = DbSet.iterator(/webmail/addrbook/contacts)
-        Iter.fold(function (contact, (i,lp,v)) {
-          Search.book(contact) |> ignore
-          prog = (i*100) / total
-          (i+1, prog, if (prog != lp) progress(prog))
-        }, contacts, (1, 1, void)).f3
-
-      case ~{failure}:
-        error("rebook: {@i18n("failed to remove Solr contact")} {failure}");
-    }
-  }
-
-}
+} // END SEARCH

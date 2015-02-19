@@ -62,7 +62,7 @@ module SearchController {
       callback({failure: AppText.login_please()})
     else
       match (AppConfig.search_type) {
-        case {solr}: callback(Search.search_contacts(state.key, query))
+        case {solr}: callback(Search.Contact.search(state.key, query))
         case {mongo}: callback({failure: @i18n("No mongo contact search implemented")})
       }
   }
