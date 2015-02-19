@@ -54,7 +54,7 @@ AdminView = {{
     if (Admin.only_admin_can_register() && not(Login.is_admin(state))) then <></>
     else
       domain = Admin.get_domain()
-      <div id=#register class="form-wrap">{
+      <div id=#register>{
         Form.wrapper(
           <div class="pane-heading">
             <h3>{AppText.register_new_account()}</h3>

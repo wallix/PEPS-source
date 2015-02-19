@@ -506,7 +506,7 @@ form {
     padding:12px 15px;
   }
 
-  &:not(.form-horizontal):not(.navbar-form):not(.form-simple):not(#loginbox__form) .form-control  {
+  &:not(.form-horizontal):not(.navbar-form):not(.form-simple):not(#loginbox__form) .form-control {
     background-color:@gray-lighter;
     border-color:@border-color-light;
   }
@@ -2760,14 +2760,29 @@ form .pane-heading {
     font-size: 21px;
     font-weight: 200;
   }
-  form {
+  .pane-heading {
+    border-width: 0;
+    text-align: center;
+  }
+  form:not(.form-horizontal):not(.navbar-form) {
+    .form-group {
+      border-width: 0;
+      margin-bottom: 15px;
+      padding: 0; 
+    }
     .form-control {
-      background: @home-card-input-bg;
-      border: none;
+      background: @home-card-input-bg !important;
+      border-width: 0;
       color: @white;
       height: 38px;
       font-weight: 300;
       letter-spacing: 1px;
+    }
+    .input-group-addon{
+      background: transparent;
+      background: @home-card-btn-bg;
+      color: @white;
+      border-width:0;
     }
     .placeholder(@white);
     &::-webkit-input-placeholder { text-transform: capitalize; }
