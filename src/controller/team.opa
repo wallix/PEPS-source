@@ -73,17 +73,17 @@ module TeamController {
     name = String.lowercase(name)
     allowed = is_allowed(state, key, parent)
     if (not(Login.is_logged(state)))
-      {failure: AppText.login_please()}
+      Utils.Failure.login()
     else if (not(allowed))
-      {failure: AppText.not_allowed_action()}
+      Utils.failure(AppText.not_allowed_action(), {forbidden})
     else if (name == "")
-      {failure: @i18n("Please enter a team name")}
+      Utils.failure(@i18n("Please enter a team name"), {bad_request})
     // The condition prevname != {some: team_name} eliminates
     // the case where a team is modified but not its name.
     else if (prevname != {some: name} && Team.team_exists(name, parent))
-      {failure: @i18n("The team named [{name}] already exists")}
+      Utils.failure(@i18n("The team named [{name}] already exists"), {bad_request})
     else if (String.contains(name, ","))
-      {failure: @i18n("The team name must not contain the character ','")}
+      Utils.failure(@i18n("The team name must not contain the character ','"), {bad_request})
     else
       match (key) {
         case {some: key}:
@@ -111,11 +111,11 @@ module TeamController {
     allowed = is_allowed(state, {some: key}, {none})
     exists = Team.key_exists(key)
     if (not(Login.is_logged(state)))
-      {failure: AppText.login_please()}
+      Utils.Failure.login()
     else if (not(exists))
-      {failure: "Non existent team"}
+      Utils.failure(@i18n("Non existent team"), {wrong_address})
     else if (not(allowed))
-      {failure: AppText.not_allowed_action()}
+      Utils.failure(AppText.not_allowed_action(), {forbidden})
     else {
       parent = Team.get_parent(key)
       lparent = Utils.lofo(parent)
@@ -134,11 +134,11 @@ module TeamController {
   protected function get(Team.key key) {
     state = Login.get_state()
     if (not(Login.is_logged(state)))
-      {failure: {unauthorized}}
+      Utils.Failure.login()
     else
       match (Team.get(key)) {
         case {some: team}: {success: team}
-        default: {failure: {not_found}}
+        default: Utils.Failure.notfound()
       }
   }
 

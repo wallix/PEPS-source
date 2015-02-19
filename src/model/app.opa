@@ -22,7 +22,6 @@ package com.mlstate.webmail.model
 /** The application is identified by its consumer key. */
 type App.t = {
   string name,
-  string provider,
   string url,           // App's base url. It must NOT end with a '/'.
   option(string) icon,  // Icon used in the topbar.
   // OAuth parameters.
@@ -43,15 +42,15 @@ module App {
   /**
    * Create and add a new application.
    * @param name the application's name
-   * @param provider the base url. The provider must be a valid http url (either '*' or a valid url)
+   * @param url the base url, must be a valid url.
    */
-  function create(string name, string provider, string url) {
+  function create(string name, string url) {
     if (exists(name)) {failure: "conflicting app name: {name}"}
     else {
       // Create key / secret pair.
       oauth_consumer_key = genkey()
       oauth_consumer_secret = genkey()
-      app = ~{ name, provider, url, oauth_consumer_key, oauth_consumer_secret, icon: none }
+      app = ~{ name, url, oauth_consumer_key, oauth_consumer_secret, icon: none }
       /webmail/apps[oauth_consumer_key == oauth_consumer_key] <- app
       {success: app}
     }

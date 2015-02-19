@@ -534,7 +534,7 @@ LabelView = {{
           end, restriction.teams)
       | _ -> []
       end
-    TeamView.layout_teams(teams, remove_click, [])
+    TeamView.layout(teams, remove_click, [])
 
   @client client_get_label_teams(label, with_admin) = get_label_teams(label, with_admin)
 

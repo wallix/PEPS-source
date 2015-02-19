@@ -228,7 +228,7 @@ module Oauth {
               oauth_token_secret = new_token()
               oauth_callback = List.assoc("oauth_callback", params) ? "oob"
 
-              if (consumer.provider == "*" || String.has_prefix(consumer.provider, oauth_callback)) {
+              if (String.has_prefix(consumer.url, oauth_callback)) {
                 expires = Date.advance(Date.now(), Duration.days(AppConfig.oauth_token_duration_days))
                 /tokens/request_tokens[oauth_token == oauth_token] <- ~{
                   oauth_token, oauth_token_secret, oauth_callback,

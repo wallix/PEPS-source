@@ -74,7 +74,7 @@ module PeopleView {
       case "teams":
         [{
           text: {@i18n("New team")},
-          action: TeamView.do_create(true, _),
+          action: TeamView.create(true, _),
           id: SidebarView.action_id
         }]
       case "contacts":

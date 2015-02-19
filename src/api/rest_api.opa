@@ -954,10 +954,9 @@ module RestApi {
       url = HttpRequest.get_url()
       format = Http.Query.string("format", url) ? "full" |> Parse.format
       match (UserController.get(key, format)) {
-        case {full: user}: Http.Json.success(user)
-        case {minimal: user}: Http.Json.success(user)
-        case {failure: {not_found}}: Http.Json.not_found("Undefined user {key}")
-        case {failure: {unauthorized}}: Http.Json.unauthorized()
+        case {success: {full: user}}: Http.Json.success(user)
+        case {success: {minimal: user}}: Http.Json.success(user)
+        case ~{failure}: Http.Json.outcome(~{failure})
       }
     }
 
@@ -1001,10 +1000,7 @@ module RestApi {
       match (Option.bind(OpaSerialize.Json.unserialize_unsorted, body)) {
         case {some: data}:
           status = Parse.status(data.status)
-          match (UserController.save(key, data.level, status)) {
-            case {success: key}: Http.Json.success(~{key})
-            case ~{failure}: Http.Json.bad_request(failure)
-          }
+          UserController.save(key, data.level, status) |> Http.Json.outcome
         default:
           warning("Users.update: Malformed body and/or missing fields")
           Http.Json.bad_request("Malformed body and/or missing fields")
@@ -1022,10 +1018,7 @@ module RestApi {
       body = HttpRequest.get_json_body()
       match (Option.bind(OpaSerialize.Json.unserialize_unsorted, body)) {
         case {some: ~{addedTeamKeys, removedTeamKeys}}:
-          match (UserController.update_teams(key, {removed_teams: removedTeamKeys, added_teams: addedTeamKeys})) {
-            case {success: teams}: Http.Json.success(~{teams})
-            case ~{failure}: Http.Json.bad_request(failure)
-          }
+          UserController.update_teams(key, {removed_teams: removedTeamKeys, added_teams: addedTeamKeys}) |> Http.Json.outcome
         default:
           warning("Users.move: Malformed body and/or missing fields")
           Http.Json.bad_request("Malformed body and/or missing fields")
@@ -1052,11 +1045,7 @@ module RestApi {
 
     /** Fetch a single team. */
     function get(_version, Team.key key) {
-      match (TeamController.get(key)) {
-        case {success: team}: Http.Json.success(team)
-        case {failure: {not_found}}: Http.Json.not_found("Undefined team {key}")
-        case {failure: {unauthorized}}: Http.Json.unauthorized()
-      }
+      TeamController.get(key) |> Http.Json.outcome
     }
 
     /** Return the full list of administrated teams. */
@@ -1067,10 +1056,7 @@ module RestApi {
       body = HttpRequest.get_json_body()
       match (Option.bind(OpaSerialize.Json.unserialize_unsorted, body)) {
         case {some: (Team.insert data)}:
-          match (TeamController.save(none, data.parent, data.name, data.description)) {
-            case {success: key}: Http.Json.success(key)
-            case ~{failure}: Http.Json.bad_request(failure)
-          }
+          TeamController.save(none, data.parent, data.name, data.description) |> Http.Json.outcome
         default:
           warning("Teams.insert: Malformed body and/or missing fields")
           Http.Json.bad_request("Malformed body and/or missing fields")
@@ -1082,10 +1068,7 @@ module RestApi {
       body = HttpRequest.get_json_body()
       match (Option.bind(OpaSerialize.Json.unserialize_unsorted, body)) {
         case {some: (Team.update data)}:
-          match (TeamController.save(some(key), none, data.name, data.description)) {
-            case {success: key}: Http.Json.success(key)
-            case ~{failure}: Http.Json.bad_request(failure)
-          }
+          TeamController.save(some(key), none, data.name, data.description) |> Http.Json.outcome
         default:
           warning("Teams.update: Malformed body and/or missing fields")
           Http.Json.bad_request("Malformed body and/or missing fields")
@@ -1094,11 +1077,7 @@ module RestApi {
 
     /** Delete a team. */
     function delete(_version, Team.key key) {
-      match (TeamController.delete(key)) {
-        case {success}: Http.Json.success({})
-        case ~{failure}:
-          Http.Json.bad_request(failure)
-      }
+      TeamController.delete(key) |> Http.Json.outcome
     }
 
     /** History of the modifications. */

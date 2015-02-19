@@ -33,13 +33,6 @@ module UserController {
 
   private function log(msg) { Log.notice("[UserController]", msg) }
 
-  private function ldap_callback(name, key, callback, res) {
-    match (res) {
-      case {success:_}: callback({success: key})
-      case ~{failure}: callback({failure: @i18n("LDAP {name} failure {failure}")})
-    }
-  }
-
   private function (list('a),list('a)) in_and_not_in(list('a) l1, list('a) l2) {
     List.partition(function (e1) { List.mem(e1,l2) }, l1)
   }
@@ -79,22 +72,22 @@ module UserController {
 
     function check(teams) {
       (_, noexists) = List.partition(Team.key_exists, teams)
-      if (noexists != []) {failure: "Non existent teams {String.concat(",", teams)}"}
+      if (noexists != []) Utils.failure("Non existent teams {String.concat(",", teams)}", {wrong_address})
       else {
         status = User.get_status(state.key)
         uteams = User.get_administrated_teams(state.key)
         (admin, notadmin) = in_and_not_in(teams, uteams)
         if (status != {super_admin} && notadmin != [])
-          {failure: @i18n("You can only add/remove users to/from your own teams")}
+          Utils.failure(@i18n("You can only add/remove users to/from your own teams"), {forbidden})
         else
-          {{success}}
+          {success: void}
       }
     }
 
     if (not(Login.is_logged(state)))
-      {failure: AppText.not_allowed_action()}
+      Utils.failure(AppText.not_allowed_action(), {unauthorized})
     else if (not(User.is_user_admin(state.key, key)))
-      {failure: AppText.not_allowed_action()}
+      Utils.failure(AppText.not_allowed_action(), {forbidden})
     else
       match (check(changes.added_teams ++ changes.removed_teams)) {
         case {success}:
@@ -130,44 +123,43 @@ module UserController {
   exposed function save(User.key key, int level, User.status status) {
     state = Login.get_state()
     if (not(Login.is_admin(state)))
-      {failure: AppText.not_allowed_action()}
+      Utils.failure(AppText.not_allowed_action(), {forbidden})
     else
       match (User.get_level(state.key)) {
         case {some: mylevel}:
-          if (not(Login.is_admin(state)) && level > mylevel)
-            {failure: AppText.Insufficient_clearance()}
+          if (level > mylevel) Utils.failure(AppText.Insufficient_clearance(), {forbidden})
           else if (User.update_level(key, level, status)) {
             Journal.Admin.log(state.key, key, {user: {update}}) |> ignore
             {success: key}
 
           } else
-            {failure: @i18n("Update failed")}
-        default: {failure: AppText.not_allowed_action()}
+            Utils.failure(@i18n("Update failed"), {internal_server_error})
+        default: Utils.failure(AppText.not_allowed_action(), {forbidden})
       }
   }
 
-  exposed @async function void block(User.key key, bool block, callback) {
+  exposed function block(User.key key, bool block) {
     state = Login.get_state()
     if (not(Login.is_admin(state)))
-      callback({failure: AppText.not_allowed_action()})
+      Utils.failure(AppText.not_allowed_action(), {forbidden})
     else {
       if (User.block(key, block))
-        callback({success})
+        {success: void}
       else
-        callback({failure: @i18n("Block failed")})
+        Utils.failure(@i18n("Block failed"), {internal_server_error})
     }
   }
 
-  exposed @async function void reset(User.key key, callback) {
+  exposed function reset(User.key key) {
     state = Login.get_state()
     if (not(Login.is_admin(state)))
-      callback({failure: AppText.not_allowed_action()})
+      Utils.failure(AppText.not_allowed_action(), {forbidden})
     else
       match (User.Password.reset(key)) {
         case {some: newpass}:
-          callback({success: newpass})
+          {success: newpass}
         default:
-          callback({failure: @i18n("Reset failed")})
+          Utils.failure(@i18n("Reset failed"), {internal_server_error})
       }
   }
 
@@ -196,7 +188,7 @@ module UserController {
   protected function get(User.key key, Message.format format) {
     state = Login.get_state()
     if (not(Login.is_logged(state)))
-      {failure: {unauthorized}}
+      Utils.Failure.login()
     else
       match ((User.get(state.key), User.get(key))) {
         case ({some: admin}, {some: user}):
@@ -204,12 +196,17 @@ module UserController {
           isadmin = User.Sem.is_user_admin(admin, user)
           match ((isadmin, format)) {
             case ({true}, {full}):
-              {full: user}
+              {success: {full: user}}
             case (_, {minimal}):
-              {minimal: ~{key, username: user.username, first_name: user.first_name, last_name: user.last_name, email: user.email}}
-            default: {failure: {unauthorized}}
+              { success: {minimal: ~{
+                  key, username: user.username,
+                  first_name: user.first_name,
+                  last_name: user.last_name,
+                  email: user.email
+                }} }
+            default: Utils.Failure.forbidden()
           }
-        default: {failure: {not_found}}
+        default: Utils.failure(AppText.non_existent_user(), {wrong_address})
       }
   }
 
@@ -283,6 +280,8 @@ module UserController {
   /** Gather asynchronous version of the methods defined in UserController. */
   module Async {
     @async @expand function save(key, level, status, ('a -> void) callback) { UserController.save(key, level, status) |> callback }
+    @async @expand function block(key, block, ('a -> void) callback) { UserController.block(key, block) |> callback }
+    @async @expand function reset(key, ('a -> void) callback) { UserController.reset(key) |> callback }
     @async @expand function update_teams(key, changes, ('a -> void) callback) { UserController.update_teams(key, changes) |> callback }
     @async @expand function delete(key, ('a -> void) callback) { UserController.Expose.delete(key) |> callback }
     @async @expand function open(key, ('a -> void) callback) { UserController.Expose.open(key) |> callback }

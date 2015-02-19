@@ -180,9 +180,9 @@ module UserView {
       Button.reset(#save_user_button)
       refresh(key, {update})
       Notifications.info(AppText.Update(), <>{@i18n("User updated")}</>)
-    case {failure: msg}:
+    case ~{failure}:
       Button.reset(#save_user_button)
-      Notifications.error(AppText.Update(), <>{msg}</>)
+      Notifications.error(AppText.Update(), <>{failure.message}</>)
   }
 
   /** Push user changes to the server. */
@@ -204,7 +204,7 @@ module UserView {
   /** Change blokc status of a user. */
   client function changeBlock(User.key key, string username, bool block, _evt) {
     Button.loading(#block_button)
-    UserController.block(key, block, function {
+    UserController.Async.block(key, block, function {
       // Client side.
       case {success}:
         Button.reset(#block_button)
@@ -215,17 +215,17 @@ module UserView {
         Notifications.info(AppText.Block(), <>{message}</>)
       case ~{failure}:
         Button.reset(#block_button)
-        Notifications.error(AppText.Block(), <>{failure}</>)
+        Notifications.error(AppText.Block(), <>{failure.message}</>)
     })
   }
 
   /** Reset the user password. */
   client function reset(User.key key, string username, _evt) {
     if (Client.confirm(@i18n("Are you sure you want to reset this user password?")))
-      UserController.reset(key, function {
+      UserController.Async.reset(key, function {
         // Client side.
         case {success: newpass}: Notifications.info(@i18n("New Password for {username}"), <>{newpass}</>)
-        case ~{failure}: Notifications.error(AppText.reset(), <>{failure}</>)
+        case ~{failure}: Notifications.error(AppText.reset(), <>{failure.message}</>)
       })
   }
 
@@ -271,7 +271,7 @@ module UserView {
     state = Login.get_state()
     teams = User.get_admin_teams(user.key)
     function remove(team) { some(removeTeam(user, team, _, _)) }
-    TeamView.layout_teams(teams, remove, [])
+    TeamView.layout(teams, remove, [])
   }
 
   /** {1} Single user display.

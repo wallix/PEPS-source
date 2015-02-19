@@ -168,10 +168,10 @@ module AdminController {
   module App {
 
     /** App registration. */
-    exposed @async function void create(name, provider, url, callback) {
+    exposed @async function void create(name, url, callback) {
       state = Login.get_state()
       if (not(Login.is_super_admin(state))) callback({failure: AppText.unauthorized()})
-      else @toplevel.App.create(name, provider, url) |> config(_, callback)
+      else @toplevel.App.create(name, url) |> config(_, callback)
     }
 
     /** Delete an existing application. The identifier is the app's consumer key. */
@@ -201,8 +201,10 @@ module AdminController {
             case "https://" .*: 4443
             case .*: 8080
           }, app.url)
+          serverport = AppParameters.parameters.http_server_port ? AppConfig.http_server_port
+          provider = "{Admin.get_domain()}:{serverport}"
           AppParameters.config(
-            app.name, app.provider,
+            app.name, provider,
             app.oauth_consumer_key,
             app.oauth_consumer_secret,
             port

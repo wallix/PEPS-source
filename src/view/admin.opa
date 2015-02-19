@@ -176,14 +176,13 @@ AdminView = {{
       | {failure=msg} -> Notifications.error(AppText.Apps(), <>{msg}</>)
       | _ ->
         do Dom.set_value(#new_app_name, "")
-        do Dom.set_value(#new_app_provider, "")
         do Dom.set_value(#new_app_url, "")
         refresh()
 
     @private @both header =
       <thead><tr>
         <th></th>
-        <th>{AppText.name()}</th><th>{AppText.Provider()}</th>
+        <th>{AppText.name()}</th><th>{AppText.link()}</th>
         <th>{AppText.Key()}</th><th>{AppText.Secret()}</th>
         <th></th>
       </tr></thead>
@@ -203,10 +202,9 @@ AdminView = {{
     /** App creation. */
     @client create(_evt) =
       name = Dom.get_value(#new_app_name)
-      provider = Dom.get_value(#new_app_provider) |> String.trim
       url = Dom.get_value(#new_app_url) |> String.trim
-      if name != "" && url != "*" && valid_http(provider) && valid_http(url)
-      then AdminController.App.create(name, provider, url, callback)
+      if name != "" && url != "*" && valid_http(url) // && valid_http(provider)
+      then AdminController.App.create(name, url, callback)
       else callback({failure=@i18n("Provider is not a valid HTTP address")})
 
     /** App deletion. */
@@ -222,7 +220,7 @@ AdminView = {{
         list <+>
         <tr>
           <td><span class="fa fa-lg {app.icon ? "fa-cube"}"></span></td>
-          <td>{app.name}</td><td>{app.provider}</td>
+          <td>{app.name}</td><td>{app.url}</td>
           <td>{app.oauth_consumer_key}</td><td>{app.oauth_consumer_secret}</td>
           <td><a class="pull-right" onclick={delete(app.oauth_consumer_key, _)}
               rel="tooltip" title={AppText.delete()}>
@@ -261,7 +259,6 @@ AdminView = {{
           Utils.panel_body(
             Form.wrapper(
               Form.line({Form.Default.line with label=AppText.name(); id="new_app_name"; value=""}) <+>
-              Form.line({Form.Default.line with label=AppText.Provider(); id="new_app_provider"; value=""}) <+>
               Form.line({Form.Default.line with label=AppText.link(); id="new_app_url"; value=""}) <+>
               <div class="form-group">{
                 (WB.Button.make({button=<>{AppText.Create_app()}</> callback=create(_)}, [{primary}])
