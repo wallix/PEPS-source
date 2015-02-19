@@ -130,10 +130,10 @@ function display(Suggest.suggestion suggestion, show_label) {
 		<div onclick={action_edit}>
 		{ match (suggestion.criterion) {
 			case {~keyword, ...}:
-				<span class="label label-info-inverse">keyword</span>
+				<span class="label label-warning-inverse">{@i18n("keyword")}</span>
 				<span class="keyword">{keyword}</span>
 			case {~recipient}:
-				<span class="label label-info-inverse">recipient</span>
+				<span class="label label-info-inverse">{@i18n("recipient")}</span>
 				<span class="recipient">{recipient}</span>
 		}}
 		</div>

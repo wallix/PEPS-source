@@ -47,6 +47,7 @@
 
 @body-bg:                      #F3F3F5;
 @sidebar-bg:                   #EEEEF2;
+@light-bg:                     #F9F9FA;
 
 @text-color:                   #707A8B;
 @caption-color:                #ADB7C8;
@@ -160,6 +161,7 @@
 // --------------------------------------------------
 // Border
 @border: 1px solid @border-color;
+@border-light: 1px solid @border-color-light;
 
 // Clear floats
 .clearfix {
@@ -175,7 +177,7 @@
 }
 // Light box shadow for panels, list-groups, messages
 .box-shadow-light {
-  .box-shadow(0 1px 1px rgba(0,0,0,.15));
+  .box-shadow(0 1px 2px rgba(0,0,0,.2));
 }
 
 // Smoothing
@@ -650,8 +652,8 @@ form:not(.form-horizontal) {
     top:0;
     left:0;
     right:0;
-    height:29px;
-    width: 71px;
+    height:32px;
+    width: 86px;
   }
 }
 .btn-sm {
@@ -694,7 +696,7 @@ form:not(.form-horizontal) {
 .btn-primary {
   background-color: @btn-primary-bg;
   border-color: @btn-primary-border;
-  border-bottom-color: darken(@btn-primary-border, 5%);
+  border-bottom-color: darken(@btn-primary-border, 10%);
 }
 .btn-primary:hover, .btn-primary:focus, .btn-primary:active, .btn-primary.active, .open .dropdown-toggle.btn-primary {
   background-color: darken(@btn-primary-bg, 5%);
@@ -708,12 +710,16 @@ form:not(.form-horizontal) {
 .btn-success {
   background-color: @btn-success-bg;
   border-color: @btn-success-border;
-  border-bottom-color: darken(@btn-success-border, 5%);
+  border-bottom-color: darken(@btn-success-border, 10%);
   text-shadow: 0 1px 0 rgba(0,0,0,0.05);
 }
 .btn-success:hover, .btn-success:focus, .btn-success:active, .btn-success.active, .open .dropdown-toggle.btn-success {
   background-color: darken(@btn-success-bg, 5%);
   border-color: darken(@btn-success-border, 5%);
+}
+.btn-success.disabled, .btn-success[disabled], fieldset[disabled] .btn-success, .btn-primary.disabled:hover, .btn-success[disabled]:hover, fieldset[disabled] .btn-success:hover, .btn-success.disabled:focus, .btn-success[disabled]:focus, fieldset[disabled] .btn-success:focus, .btn-success.disabled:active, .btn-success[disabled]:active, fieldset[disabled] .btn-success:active, .btn-success.disabled.active, .btn-success[disabled].active, fieldset[disabled] .btn-success.active {
+  background-color: @btn-success-bg;
+  border-color: @btn-success-border;
 }
 // Info
 .btn-info {
@@ -778,6 +784,7 @@ form:not(.form-horizontal) {
   border-width: 1px;
   border-style: solid;
   margin-right: 3px;
+  padding-bottom:.2em;
   .fa {
     color:inherit;
     line-height: 13px;
@@ -858,13 +865,13 @@ form:not(.form-horizontal) {
   border-color: @brand-success-bg;
 }
 .label-danger-inverse {
-  color: @brand-danger-bg;
-  background-color: @brand-danger-text;
+  color: @brand-danger;
+  background-color: @brand-danger-bg;
   border-color: @brand-danger-bg;
 }
 .label-warning-inverse {
-  background-color: @brand-warning-bg;
   color: @brand-warning-text;
+  background-color: @brand-warning-bg;
   border-color: @brand-warning-bg;
 }
 
@@ -975,7 +982,6 @@ form:not(.form-horizontal) {
 .panel-body {
   position: relative;
   background: @white;
-  border: 1px solid @border-color;
   border-radius: 5px;
   .box-shadow-light;
   form {
@@ -1029,7 +1035,15 @@ form:not(.form-horizontal) {
   color: @gray-darker;
   line-height: 1.1em;
   font-weight: 400;
-  
+  &:first-child {
+    border-top: none;
+    border-top-right-radius: 5px;
+    border-top-left-radius: 5px;
+  }
+  &:last-child {
+    border-bottom-right-radius: 5px;
+    border-bottom-left-radius: 5px;
+  }
   &:hover, &:focus {
     background-color: @brand-default-hover;
   }
@@ -1040,13 +1054,13 @@ form:not(.form-horizontal) {
   }
   .user-img {margin-right:5px;}
 }
-.list-group-item:not(.list-group-item-header){
-  &:first-child, &:last-child {
-    border-radius: 0;
+// Dircard border-radius for pane lists
+.pane-left, .modal {
+  .list-group-item{
+    &:first-child, &:last-child {
+      border-radius: 0;
+    }
   }
-}
-.list-group-item:first-child {
-  border-top: none;
 }
 a.list-group-item {
   color: @gray;
@@ -1057,9 +1071,7 @@ a.list-group-item {
   margin-right: 0;
   .click-expand, .click-collapse {
     margin-right: 2px;
-    opacity: 0.5;
-    filter: alpha(opacity=50);
-    -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=50)";
+    .opacity(50);
   }
 }
 
@@ -1190,7 +1202,7 @@ a.list-group-item {
   .navbar-form {
     width: @pane-left-width + 20px;
     position: relative;
-    margin-top: 8px;
+    margin-top: 10px;
     padding-left:0;
     padding-right:0;
     .form-group {
@@ -1250,6 +1262,7 @@ a.list-group-item {
   padding: 8px 20px;
   font-size: 16px;
   font-weight: 300;
+  border-color: @border-color;
   >li {
     >a:hover {color: @gray-dark;}
     .active {
@@ -1266,16 +1279,11 @@ a.list-group-item {
     >a{
       padding-top: 4px;
       padding-bottom: 4px;
-      color:@brand-primary;
+      color:@gray;
       background-color: @white;
-      border:1px solid @brand-primary;
+      border:1px solid @border-color-dark;
       font-weight: 300;
       border-radius: 0;
-      .fa {
-        font-size: 16px;
-        color:@brand-primary;
-        vertical-align: text-top;
-      }
       &:hover, &:focus {
         background-color: @gray-lighter;
       }
@@ -1289,7 +1297,7 @@ a.list-group-item {
         border-bottom-right-radius: 2px;
       }
     &.active>a, &.active>a:hover, &.active>a:focus {
-      background-color: @brand-primary;
+      background-color: @border-color-dark;
       color: @white;
     }
   }
@@ -1410,7 +1418,7 @@ a.list-group-item {
     display: inline-block;
     position: absolute;
     top: 7px;
-    right: 8px;
+    right: 10px;
     .badge {
       background-color: @caption-color;
       color: @white;
@@ -1450,24 +1458,29 @@ a.list-group-item {
 // Main
 // --------------------------------------------------
 
-// Landing page
 body {
   > .main, > .main.narrow {
-    top:0;
+    top:0; // .main without topbar
     left:0;
   }
-}
-// Main with topbar
-body .navbar + .sidebar + .main {
-  top:@navbar-height;
-  left:@menu-width-narrow;
-  &.narrow {left: @menu-width;}
+  .navbar + .sidebar + .main {
+    top:@navbar-height; // .main with topbar
+    left:@menu-width-narrow;
+    &.narrow {left: @menu-width;}
+  }
+  .navbar + .main {
+    top:@navbar-height; // .main with topbar
+  }
 }
 
 .main {
   position: fixed;
   right:0;
   bottom: 0;
+
+  .main-page {
+    padding-top: 10px;
+  }
 
   .content {
     position: absolute;
@@ -1519,7 +1532,7 @@ body .navbar + .sidebar + .main {
   }
   h3 {
     display: inline-block;
-    margin: 0 80px 0 0;
+    margin: 0;
     padding: 5px;
   }
   .pane-heading-label {
@@ -1564,8 +1577,11 @@ form .pane-heading {
         display: inline-block;
       }
     }
-    .nav-pills>li>a {
-      font-size:14px;
+    .nav-pills{
+      margin-left: 8px;
+      >li>a {
+        font-size:14px;
+      }
     }
   }
   > ul, .list-group {
@@ -1609,6 +1625,9 @@ form .pane-heading {
   .pane-inner-right {
     right: 0;
     border-left: @border;
+  }
+  .pane-heading {
+    //background: @light-bg;
   }
 }
 
@@ -1674,12 +1693,7 @@ form .pane-heading {
 
 // Empty text
 .empty-text {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom:0;
   text-align: center;
-  overflow-y: auto;
     p {
       font-size: 16px;
       font-weight: 300;
@@ -1692,25 +1706,27 @@ form .pane-heading {
 // --------------------------------------------------
 // List header
 .entries {
-  padding: 0 20px; // TODO adapt for media narrow screen
-  .list-group-item:last-child {
-    border-bottom-left-radius: 5px;
-    border-bottom-right-radius: 5px;
-    border-bottom-width: 0;
-    .box-shadow-light;
+  .list-group {
+    margin: 8px 20px;
+    border-radius: 5px;
   }
 }
-.list-group-item-header, .list-group-item-header:first-child {
+.list-group-item-header {
   background-color: transparent;
-  margin-top:10px;
   padding: 8px 12px;
   font-size: 16px;
   line-height: 1.4em;
   letter-spacing: 1px;
-  border-top-left-radius: 5px;
-  border-top-right-radius: 5px;
   color: @gray;
   font-weight: 300;
+  border-width: 0;
+  &+ .list-group-item {
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
+  }
+  &:hover, &:focus {
+    background-color: transparent;
+  }
 }
 // Entry
 .dashboard-entry {
@@ -1718,6 +1734,11 @@ form .pane-heading {
   padding-top:15px;
   padding-bottom:15px;
   line-height: 24px;
+  .box-shadow-light;
+
+  &:last-child {
+    border-bottom: none;
+  }
   .fa {
     font-size: 28px;
     line-height: 24px;
@@ -1832,7 +1853,7 @@ form .pane-heading {
     border-bottom: @border;
     min-height: 50px;
     padding: 10px;
-    color: @gray;
+    color: @text-color;
     .fa {
       margin-bottom: 1px;
       &.fa-circle, &.fa-circle-o {
@@ -1887,10 +1908,10 @@ form .pane-heading {
   .message_subj {
     font-size: 15px;
     .label {
-      width:14px;
-      height:14px;
+      width:15px;
+      height:15px;
       display: inline-block;
-      margin-top: 4px;
+      margin-top: 3px;
     }
   }
   .message_content {
@@ -1957,24 +1978,22 @@ form .pane-heading {
     }
   }
   .message {
-    margin:20px;
-    padding: 15px;
+    margin:15px;
     background-color: @white;
     border-radius: 5px;
     .box-shadow-light;
   }
   .msg-heading {
-    margin-bottom: 10px;
-    padding-right: 130px;
+    position: relative;
+    border-bottom: @border-light;
+    padding: 8px 12px;
     &:after {
       .clearfix;
     }
     .message_actions {
       position: absolute;
-      top: 0;
-      right:0;
-      margin-right: -8px; // less margin
-      margin-top: -4px; // less margin
+      top: 8px;
+      right:8px;
     }
   }
   .message_from {
@@ -1993,14 +2012,13 @@ form .pane-heading {
       }
     }
   }
+  .msg-summary, .message_atts > .files-attached, .message_content {
+    padding: 8px 15px 0;
+  }
   .msg-summary {
     position: relative;
     display: block;
   }
-  .message_infos {
-    padding-bottom:5px;
-  }
-
   .message_date {
     display: inline-block;
     &:hover {
@@ -2032,6 +2050,7 @@ form .pane-heading {
   }
   // Content
   .message_content {
+    padding-bottom: 12px;
     pre {
       margin: 0;
     }
@@ -2039,7 +2058,7 @@ form .pane-heading {
   // Quick reply
   .message-reply {
     display: none;
-    border: 1px solid @border-color-light;
+    border: @border-light;
     padding: 10px 15px 15px;
     border-width: 1px 0;
     &:after {
@@ -2090,22 +2109,23 @@ form .pane-heading {
 }
 .files-upload-group {
   border:@border;
-  border-radius: 2px;
+  border-radius: 5px;
   display: inline-block;
   padding-left:12px;
   min-width: 300px;
   .btn {
     border-width: 0 0 0 1px;
-    border-radius: 0;
-    margin-left:6px;
-    padding-top: 8px;
-    padding-bottom: 9px;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+    padding-top: 7px;
+    padding-bottom: 7px;
   }
   label, .labels-list, .dropdown {
     display: inline-block;
   }
   .dropdown {
     min-width: 95px;
+    padding-bottom: 3px; // to display dropdown properly
   }
 }
 // File thumbnail
@@ -2122,7 +2142,7 @@ form .pane-heading {
     border-radius: 2px;
   }
 }
-.file-chooser-content .file-thumbnail {
+.chooser-content .file-thumbnail {
   margin-right: 4px;
 }
 
@@ -2157,6 +2177,10 @@ form .pane-heading {
     font-size: 11px;
     line-height: 1.1em;
   }
+  .name {
+    font-weight: 400;
+    margin-bottom: 3px;
+  }
 }
 // Compose Modal attachments
 .files {
@@ -2188,7 +2212,10 @@ form .pane-heading {
       padding: 3px 5px 4px;
     }
     &:hover {
-      background-color: @gray-light;
+      background-color: @sidebar-bg;
+    }
+    .name {
+      color:@gray-dark;
     }
   }
   &:after {
@@ -2198,6 +2225,9 @@ form .pane-heading {
 
 // Message View attachments
 .files-attached {
+  h6 {
+    margin-top: 0;
+  }
   .file-attached {
     width: 100px;
     height: 100px;
@@ -2280,7 +2310,6 @@ form .pane-heading {
     border:none;
     background: rgba(255,255,255,0.75);
     background-position: center -70px;
-    .box-shadow(0 3px 9px rgba(0,0,0,.5));
     &:before {
       content: "";
       display: block;
@@ -2293,7 +2322,7 @@ form .pane-heading {
       filter: blur(10px);
       -webkit-filter: blur(10px);
       -moz-filter: blur(10px);
-      filter: url("/resources/img/blur-bg.svg#blur");
+      //filter: url("/resources/img/blur-bg.svg#blur");
     }
   }
   .control-label {
@@ -2310,6 +2339,8 @@ form .pane-heading {
   }
   .modal-header {
     padding: 5px 15px;
+    border-top-right-radius: 5px;
+    border-top-left-radius: 5px;
     a:hover {text-decoration: none;}
     a {
       &.fa-expand, &.fa-compress {
@@ -2321,8 +2352,7 @@ form .pane-heading {
     }
     .close{
       color: @gray;
-      opacity:1;
-      filter: alpha(opacity=100);
+      .opacity(100);
       font-size: 24px;
       line-height: 32px;
       font-weight: 300;
@@ -2370,6 +2400,9 @@ form .pane-heading {
   .modal-footer {
     padding-top:10px;
     padding-bottom: 10px;
+    border-width: 0;
+    border-bottom-right-radius: 5px;
+    border-bottom-left-radius: 5px;
     .btn {
       min-width: 86px;
     }
@@ -2481,10 +2514,14 @@ form .pane-heading {
       border-width: 0;
       padding-left:0;
       padding-right: 0;
-      height: 32px;
       &:focus, &:hover, &:active {
         background-color: @white;
         border-width:0;
+      }
+    }
+    input {
+      &.form-control, &.ui-autocomplete-input {
+        height: 32px;
       }
     }
     .recipients-field.ui-autocomplete-input {}
@@ -2514,13 +2551,12 @@ form .pane-heading {
 }
 
 // File and Label chooser
-.file-chooser {
+.chooser-modal {
   &:after {
     .clearfix;
   }
-  .file-choooser-filter{
-    margin-top: 5px;
-    margin-bottom: 5px;
+  .chooser-filter{
+    padding:5px 12px;
     .fa {
       display: inline-block;
       padding: 8px 4px;
@@ -2530,19 +2566,13 @@ form .pane-heading {
       left:15px;
     }
     input {
-      height:30px;
-      border-width: 0;
-      padding-left:28px;
       &:active, &:focus, &:hover {
         background: rgba(0,0,0,0.03);
         border-width:0;
       }
     }
   }
-  .file-choooser-pager{
-    padding-top: 8px;
-  }
-  .file-chooser-content {
+  .chooser-content {
     position: relative;
     clear:both;
     display: block;
@@ -2550,6 +2580,9 @@ form .pane-heading {
     max-height: 277px;
     p {margin:15px;}
     a:hover {text-decoration: none;}
+    .label_block {
+      margin-top: 5px;
+    }
   }
   .list-group {
     margin-bottom: 0;
@@ -2615,6 +2648,9 @@ form .pane-heading {
           color: @brand-primary;
           }
         &:hover {background-color: @white;}
+        &:hover, &:focus {
+          background-color: @white;
+        }
       }
     }
     .open {
