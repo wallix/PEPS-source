@@ -257,17 +257,38 @@ module Content {
       else do_setup_admin(pass)
     }
 
+    protected function signin(state) {
+      <>
+      <h1>{Admin.get_settings().logo}</h1>
+      <h3>{AppText.sign_in_to_mailbox()}</h3>
+      <div id="login">
+        {Login.build(state)}
+      </div>
+      { if (not(Admin.only_admin_can_register())) {
+          <a onclick={function(_){ #signin_well = signup(state) }}>
+            {@i18n("Don't have an account? Sign up")}
+          </a>
+        } 
+        else <></>
+      }
+      </>
+    }
+
+    protected function signup(state) {
+      AdminView.register(state, none) <+>
+      <a onclick={function(_){ #signin_well = signin(state) }}>
+        {@i18n("Already have an account? Sign in")}
+      </a>
+    }
+
     /** Log in window, if user is not connected. */
     @expand protected function loginbox(state) {
       <div class="home-card">
         <div class="well">
           <div class="app-icon"></div>
-          <h1>{Admin.get_settings().logo}</h1>
-          <h3>{AppText.sign_in_to_mailbox()}</h3>
-          <div id="login">
-            {Login.build(state)}
-          </div>
-          {AdminView.register(state, none)}
+          <div id="signin_well">
+            {signin(state)}
+          </div>      
         </div>
       </div>
     }

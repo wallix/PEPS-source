@@ -149,7 +149,7 @@
 @home-card-bg:                  #5084E5;
 @home-card-bg-gradient1:        rgba(102, 197, 172, 0.9);
 @home-card-bg-gradient2:        rgba(85, 126, 205, 0.9);
-@home-card-text:                rgba(255,255,255,0.6);
+@home-card-text:                rgba(255,255,255,0.8);
 @home-card-input-bg:            rgba(255,255,255,0.25);
 @home-card-btn-bg:              rgba(255,255,255,0.1);
 @home-card-btn-border:          rgba(255,255,255,0.7);
@@ -2742,17 +2742,21 @@ form .pane-heading {
   top: (@navbar-height + 10px);
   left: 50%;
   display: block;
-  h1, h2, h3, p {
+  h1, h2, h3, p, a {
     text-align: center;
   }
+  h1, h2, h3, p, label, a, a:hover, a:visited, a:focus {
+    color: @white;
+  }
+  a {display: block;}
   h1 {
     font-size: 64px;
+    font-weight: 300;
     font-weight: 100;
     margin-top: 25px;
     margin-bottom: 25px;
-    letter-spacing: 2px;
+    letter-spacing: 1px;
   }
-  h1, h2, h3, p, label {color: @white;}
   h2 {
     margin-top: 0;
     margin-bottom: 20px;
@@ -2768,6 +2772,7 @@ form .pane-heading {
     text-align: center;
   }
   form:not(.form-horizontal):not(.navbar-form) {
+    margin-bottom: 15px;
     .form-group {
       border-width: 0;
       margin-bottom: 15px;
