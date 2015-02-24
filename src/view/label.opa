@@ -249,37 +249,29 @@ LabelView = {{
       end
     | _ -> {failure=@i18n("Please choose a label")}
 
-  /** Open **/
-
-  label_tabs(with_admin) =
+  @server_private label_tabs(admin) =
     <div class="pane-heading">
       <ul class="nav nav-pills">
         <li class="active"><a href="#label-pane" data-toggle="tab">{AppText.Label()}</a></li>
-        { if with_admin then
+        { if admin then
             <li><a href="#filters-pane" data-toggle="tab">Filters</a></li>
             <li><a href="#users-pane" data-toggle="tab">Users</a></li>
           else
-            <li><a href="#messages-pane" data-toggle="tab">{AppText.messages()}</a></li>
-        }
+            <li><a href="#messages-pane" data-toggle="tab">{AppText.messages()}</a></li> }
       </ul>
     </div>
 
-  label_pane_edit(state, label, with_admin) =
+  @server_private label_pane_edit(state, label, admin) =
     <div class="tab-pane active" id=#label-pane>
-      {build_form_tab(state, some(label), with_admin)}
+      {editor(state, some(label), admin)}
     </div>
 
-   //<a class="pull-right" onclick={do_delete(id, with_admin, _)}><i class="fa fa-trash-o"/> {AppText.delete()}</a>
-
-  label_pane_filters(state, label_opt) =
+  @server_private label_pane_filters(label) =
     <div class="tab-pane" id=#filters-pane>
-      {match label_opt
-        | {none} -> <>Create the label first</>
-        | {some=label} -> SuggestView.display_by_label(label.id)
-      }
+      {SuggestView.display_by_label(label)}
     </div>
 
-  label_pane_users(state) =
+  @server_private label_pane_users =
     <div class="tab-pane" id=#users-pane>
       <div id=#users_list class="users_list col-md-4 pane-inner-left">
         <div id=#pane_users_content></div>
@@ -287,28 +279,25 @@ LabelView = {{
       <div id=#user_viewer class="col-md-8 pane-inner-right"/>
     </div>
 
-  label_pane_messages(state) =
+  @server_private label_pane_messages =
     <div class="tab-pane" id=#messages-pane>
       <div id=#pane_messages_content>
       </div>
     </div>
 
-  build_label_panes(state, label:Label.t, with_admin) =
-    <>
-    {label_tabs(with_admin)}
+  @server_private build_label_panes(state, label:Label.t, admin:bool) =
+    label_tabs(admin) <+>
     <div id=#label-panes class="tab-content pane-wrap">
-      {label_pane_edit(state, label, with_admin)}
-      { if with_admin then
-          label_pane_filters(state, some(label)) <+>
-          label_pane_users(state)
-        else
-          label_pane_messages(state) }
+      {label_pane_edit(state, label, admin)}
+      { if admin then
+          label_pane_filters(label.id) <+>
+          label_pane_users
+        else label_pane_messages }
     </div>
-    </>
 
   @server_private @async
   server_open_callback(state, res) =
-    match res
+    match res with
     | {success= ~{users}} ->
       page = UserController.highlight(users) |> Iter.to_list |> UserController.page
       html = UserView.build_page(state, page, none, User.emptyFilter)
@@ -320,6 +309,7 @@ LabelView = {{
         <div id=#message_viewer class="message_viewer col-md-8 pane-inner-right"/>
       Dom.transform([#pane_messages_content <- html])
     | {failure=e} -> void
+    end
 
   @publish @async
   server_open(id, admin: bool) =
@@ -330,94 +320,131 @@ LabelView = {{
       LabelController.open(state, label, admin, server_open_callback(state, _))
     // If the label can't be found, call the callback directly.
     | _ -> server_open_callback(state, {failure=AppText.Label_not_found()})
+    end
 
   @client
-  do_open(id:Label.id, admin: bool, _) =
+  do_open(id:Label.id, admin:bool, _) =
     server_open(id, admin)
 
-
-  /** {1} Label page refresh. */
-
-  @publish @async
-  refresh(admin) =
+  /** Refresh the label list only (not the currently displayed label). */
+  @publish @async refresh(admin) =
     state = Login.get_state()
     if not(Login.is_logged(state)) then void
     else #content <- build(state, admin)
 
-  /** {1} Open the label creation form. */
-
-  @client @async
-  create_callback =
-  | {success=html} -> #label_viewer <- html
-  | {failure=e} ->
-    Notifications.error(@i18n("Label creation"), <>{e}</>)
-
-  @publish @async
-  create(admin, _evt: Dom.event) =
+  /** Open the label editor in creation mode. */
+  @publish @async create(admin, _evt: Dom.event) =
     state = Login.get_state()
     if not(Login.is_logged(state)) then
-      create_callback({failure= Content.login_please})
+      Notifications.error(@i18n("Label creation"), Content.login_please)
     else
-      html = build_form_tab(state, none, admin)
-      create_callback({success= html})
+      html = editor(state, none, admin)
+      #label_viewer <- html
 
-  /** {1} Label deletion. **/
-
-  @client
-  delete(id: Label.id, admin, _evt) =
+  /** Delete the selected label. */
+  @client delete(id: Label.id, admin, _evt) =
     if Client.confirm(@i18n("Are you sure you want to delete this label?")) then
       LabelController.Async.delete(id,
         // Callback is client-side.
         | {success} ->
           do refresh(admin)
           #label_viewer <- <></>
-        | {failure=e} -> void
+        | {failure= _message} -> void
       )
     else void
 
   /** {1} Label creation and edition. **/
 
-  @client @async
-  save_callback(admin, res) =
+  /** Refresh the label list and displayed label on success. */
+  @client @async save_callback(admin, res) =
     match (res) with
     | {success=id} ->
       do refresh(admin)
       edit(id, admin)
     | {failure=e} -> Notifications.error(AppText.Save_failure(), <>{e}</>)
 
-  @client
-  save(prevlabel, callback, _evt) =
+  /** Save the changes made to a label definition. */
+  @client save(prevlabel, callback, _evt) =
     previd = Option.map(_.id, prevlabel)
     name = Dom.get_value(#label_name) |> Utils.sanitize
     descr = Dom.get_value(#label_description) |> String.trim
     choice = Radio.get_checked([#personal, #shared, #not_protected, #restricted_diffusion], "personal")
     match (category_of_string(choice, Option.map(_.category, prevlabel))) with
-      | {success=category} -> LabelController.Async.save(previd, name, descr, category, callback)
-      | {failure=e} -> callback({failure=e})
+    | {success=category} -> LabelController.Async.save(previd, name, descr, category, callback)
+    | {failure=e} -> callback({failure=e})
     end
 
+  /** Open the label editor. */
   @publish @async
   edit(id:Label.id, admin) =
     state = Login.get_state()
     match Label.safe_get(state.key, id)
     | {some=label} ->
       html = build_label_panes(state, label, admin)
-      edit_callback({success=html})
-    | _ -> void // edit_callback({failure=AppText.Label_not_found()})
+      #label_viewer <- html
+    | _ -> void
     end
 
-  @client @async
-  edit_callback =
-  | {success=html} -> #label_viewer <- html
-  | {failure=e} -> void
+  /**
+   * Remove a team from the label's classification.
+   * @param _id identifier of the dom element whence originated the remove call.
+   */
+  @client removeTeam(label:Label.t, team:Team.key, admin:bool, _id:string, _evt:Dom.event) =
+    match label.category with
+    | {classified= restriction} ->
+      if List.mem([team], restriction.teams)
+        // && Client.confirm(@i18n("Remove team {team.name} from label '{label.name}'?"))
+      then
+        // If team name is unknown: Team.get_name(d) == {none}, the team gets removed anyway.
+        teams = List.filter((d -> d != [team]), restriction.teams)
+        category = {classified= {restriction with ~teams}}
+        LabelController.Async.save(
+          {some= label.id}, label.name, label.description,
+          category, save_callback(admin, _))
+    | _ -> void
+    end
 
-   @client
-  do_edit(id:Label.id, with_admin, _) = edit(id, with_admin)
+  /** Add a team to a label's classification. */
+  @client addTeam(label:Label.t, admin:bool, _evt:Dom.event) =
+    (action, excluded) =
+      match (label.category) with
+      | {classified=restriction} ->
+        // Client side callback.
+        action(team) =
+          if not(List.mem([team], restriction.teams))
+          then
+            teams = [[team]|restriction.teams]
+            category = {classified= {restriction with ~teams}}
+            LabelController.Async.save(
+              {some= label.id}, label.name, label.description, category,
+              save_callback(admin, _))
+        // Excluded teams (already chosen).
+        (action, List.flatten(restriction.teams))
+      | _ ->
+        // The action must change the category to a classified label.
+        action(team) =
+          category = {classified= {
+            teams= [[team]]
+            level=1 encrypt=false
+          }}
+          LabelController.Async.save(
+            {some= label.id}, label.name, label.description, category,
+            save_callback(admin, _))
+        // No excluded teams.
+        (action, [])
+      end
+    TeamChooser.create({
+      title= @i18n("Add team to {label.name}")
+      excluded= excluded user = none action= action
+    })
 
-  /** Display **/
+  /** {1} View construction. */
 
-  display(label : Label.t) =
-    <span class="label">{label.name}</span>
+  /**
+   * Format a search result. Used exclusively in {Suggest}
+   * to format label options.
+   */
+  display(label: Label.t) = <span class="label">{label.name}</span>
 
   /** Convert a client label to an xhtml value. */
   @both make_label(label: Label.Client.label, onclick) =
@@ -425,8 +452,8 @@ LabelView = {{
     class = if (label.personal) then ["personal"] else []
     close =
       match (onclick) with
-        | {some= ~{onclick icon title}} -> <a onclick={onclick(domid, label.id, _)} class="fa fa-{icon}" title={title}></a>
-        | _ -> <></>
+      | {some= ~{onclick icon title}} -> <a onclick={onclick(domid, label.id, _)} class="fa fa-{icon}" title={title}></a>
+      | _ -> <></>
       end
     <span id="{domid}" data-name="{label.name}" class="label-label">{
       WB.Label.make(
@@ -442,100 +469,31 @@ LabelView = {{
       lb = Label.to_importance(label.category)
       level = Label.get_level(label)
       lvl = if level > 0 then AppConfig.level_view(level) else ""
-      content = <div class="pull-right">
-        <span class="badge">{lvl}</span>
-      </div> <+>
-      WB.Label.make(
-        <span class="name">{label.name}</span>
-      , lb)
+      content =
+        <div class="pull-right"><span class="badge">{lvl}</span></div> <+>
+        WB.Label.make(<span class="name">{label.name}</span>, lb)
       // Return list item with onlick handler.
       (content, do_open(id, with_admin, _))
     , labels) |>
     ListGroup.make(_, AppText.no_labels())
 
-  /** Build **/
-
-  @both
-  select_if(xhtml:xhtml, sel:bool) =
-    if sel then Xhtml.add_attribute_unsafe("selected", "selected", xhtml)
-    else xhtml
-
-  @server_private
-  label_id =
-  | {some=label} -> some(label.id)
-  | {none} -> none
-
-  // form in tab
-  build_form_tab(state:Login.state, prev_label_opt:option(Label.t), with_admin) =
-    <>
-      {build_label_view(state, prev_label_opt, with_admin)}
-    </>
-
-  @client add_team_callback(label, with_admin, team) =
-  // match DeptRef.get("choose_team_modal") with
-  // | {none} -> void
-  // | {some=team} ->
-    match label.category with
-    | {classified=restriction} ->
-      if not(List.mem([team], restriction.teams))
-        // && Client.confirm(@i18n("Add team '{team.name}' to label {label.name}?"))
-      then
-        teams = [[team]|restriction.teams]
-        cat = {classified= {restriction with ~teams}}
-        LabelController.Async.save(
-          {some=label.id}, label.name, label.description, cat,
-          save_callback(with_admin, _))
-    | _ -> void
-    end
-
-  @client client_remove_team(label:Label.t, team:Team.t, with_admin:bool, id:string, ev:Dom.event) =
-    match label.category with
-    | {classified= restriction} ->
-      if List.mem([team.key], restriction.teams)
-        // && Client.confirm(@i18n("Remove team {team.name} from label '{label.name}'?"))
-      then
-        // If team name is unknown: Team.get_name(d) == {none}, the team gets removed anyway.
-        teams = List.filter((d -> d != [team.key]), restriction.teams)
-        cat = {classified= {restriction with ~teams}}
-        do LabelController.Async.save(
-          {some=label.id}, label.name, label.description, cat,
-          save_callback(with_admin, _))
-        do #{"label_teams"} <- client_get_label_teams(label, with_admin)
-        void
-      else void
-    | _ -> void
-    end
-
-  @client do_add_team(key, label, with_admin, ev:Dom.event) =
-    TeamChooser.create({
-      title= @i18n("Add team to {label.name}")
-      excluded= Label.get_teams(label)
-      user = none
-      action= add_team_callback(label, with_admin, _)
-    })
-
-  @publish
-  get_label_teams(label, with_admin) =
-    state = Login.get_state()
-    remove_click(team) = {some=client_remove_team(label, team, with_admin, _, _)}
-
+  /** Fetch and layout the teams listed as part of a classified label. */
+  @server_private layoutTeams(label, admin) =
+    remove(team) = {some= removeTeam(label, team.key, admin, _, _)}
     teams =
       match (label.category) with
-      | {classified=restriction} ->
+      | {classified= restriction} ->
         List.filter_map(d ->
           match (d) with
           | [d] -> Team.get(d)
-          | _ -> {none}
+          | _ -> none
           end, restriction.teams)
       | _ -> []
       end
-    TeamView.layout(teams, remove_click, [])
+    TeamView.layout(teams, remove, [])
 
-  @client client_get_label_teams(label, with_admin) = get_label_teams(label, with_admin)
-
-
-  @server_private
-  build_label_view(state: Login.state, label: option(Label.t), with_admin) =
+  /** Build the label viewer / editor. */
+  @server_private editor(state: Login.state, label: option(Label.t), with_admin) =
     is_admin = with_admin && Login.is_admin(state)
     ( name, description, level, pre_label_teams, personal, shared,
       not_protected, classified, internal, internet, encrypt ) =
@@ -578,9 +536,9 @@ LabelView = {{
         style = if (classified) then "" else "display:none;"
         <div id="label_teams-form-group" class="form-group" style="{style}">
           <label class="control-label">{AppText.teams()}
-            <a onclick={do_add_team(state.key, label, with_admin, _)} class="fa fa-plus-circle-o"/>
+            <a onclick={addTeam(label, with_admin, _)} class="fa fa-plus-circle-o"/>
           </label>
-          <div id="label_teams">{get_label_teams(label, with_admin)}</div>
+          <div id="label_teams">{layoutTeams(label, with_admin)}</div>
         </div>
       | {none} -> <></>
       end
@@ -642,21 +600,18 @@ LabelView = {{
 
   @server_private
   build(state:Login.state, admin:bool) =
-    status =
-      if admin then {super}
-      else {logged}
+    status = if admin then {super} else {logged}
     Content.ensure(status, state,
+      title = if (admin) then AppText.classification() else AppText.labels()
       kind = if (admin) then {class} else {shared}
       labels = Label.list(state.key, kind)
-
       <div id=#labels_list class="pane-left">
         <div class="pane-heading">
-          <h3>{if admin then AppText.classification() else AppText.labels()}</h3>
+          <h3>{title}</h3>
         </div>
         { build_labels(labels, admin) }
       </div>
-      <div id=#label_viewer class="pane-right">
-      </>
+      <div id=#label_viewer class="pane-right"></div>
     )
 
 }}

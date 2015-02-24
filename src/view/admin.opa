@@ -84,21 +84,21 @@ AdminView = {{
     @client set(_evt) =
       timeout = Dom.get_value(#disconnection_timeout)
       grace_period = Dom.get_value(#disconnection_grace_period)
-      logo_name = Dom.get_value(#logo_name)
+      logo = Dom.get_value(#logo_name) |> String.trim
       domain_name = Dom.get_value(#domain_name)
       only_admin_can_register = Dom.is_checked(#only_admin_can_register)
       match (Parser.int(timeout),Parser.int(grace_period)) with
       | ({some=timeout}, {some=grace_period}) ->
-        settings = {
+        settings = ~{
           disconnection_timeout = timeout
           disconnection_grace_period = grace_period
           domain = String.trim(domain_name)
-          logo = String.trim(logo_name)
-          only_admin_can_register = only_admin_can_register
+          logo only_admin_can_register
         }
         AdminController.set_settings(settings,
           // Client side.
           | {success= (timeout, grace_period, domain)} ->
+            do #topbar_logo_name <- <>{logo}</> // Update logo name.
             Notifications.success(
               AppText.settings(),
               <>{@i18n("Timeout {timeout} minutes, Grace period {grace_period} seconds, Domain {domain}")}</>

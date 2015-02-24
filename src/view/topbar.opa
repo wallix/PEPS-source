@@ -25,8 +25,8 @@ module TopbarView {
   function logo() {
     WB.Navigation.brand(
       <>
-        <img src="/resources/img/peps-logo.png" class="navbar-logo"/> 
-        <span class="hidden-xs hidden-sm">{Admin.get_settings().logo}</>
+        <img src="/resources/img/peps-logo.png" class="navbar-logo"/>
+        <span class="hidden-xs hidden-sm" id="topbar_logo_name">{Admin.get_settings().logo}</>
       </>, some("/"), ignore)
   }
 
