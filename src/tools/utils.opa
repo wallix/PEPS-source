@@ -411,12 +411,12 @@ module UrlEncoding {
 /** Checkbox helpers. */
 module Checkbox {
 
-  function make(string id, string label, bool checked) {
+  function make(string id, string label, bool checked, bool displayed) {
     input =
       if (checked) <input type="checkbox" id="{id}" checked="checked"/>
       else (<input type="checkbox" id="{id}"/>)
-
-    <div id="{id}_group" class="form-group">
+    style = if (displayed) "" else "display:none;"
+    <div id="{id}_group" class="form-group" style="{style}">
       {input}
       <label for="{id}">{label}</label>
     </div>
@@ -470,17 +470,19 @@ module Radio {
 module ListGroup {
 
   function make(list, etext) {
-    function void_action(_evt) { void }
-    List.map(function (x) { (x, void_action) }, list) |> make_action(_, etext)
-  }
-
-  function make_elt((content, onclick)) { <a class="list-group-item" onclick={onclick}>{content}</a> }
-
-  function make_action(list, etext) {
     <div class="list-group">{
       if (list == []) <div class="empty-text"><p>{etext}</p></div>
-      else <>{List.map(make_elt, list)}</>
+      else <>{List.map(makeItem, list)}</>
     }</div>
+  }
+
+  /** Same as make, with a void action attached to each element. */
+  function makeVoid(list, etext) {
+    List.map(function (x) { (x, ignore) }, list) |> make(_, etext)
+  }
+
+  function makeItem((content, onclick)) {
+    <a class="list-group-item" onclick={onclick}>{content}</a>
   }
 
 } // END LISTGROUP

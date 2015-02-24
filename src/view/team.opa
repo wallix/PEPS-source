@@ -224,14 +224,14 @@ module TeamView {
 
 
   protected function build_teams(list(Team.t) teams, bool super) {
-    teamlist =
-      List.map(function(team) {
-        key = team.key
-        name = team.name
-        content = <span class="name label label-{team.color}" onclick={do_open(key, super, _)}>{team.name}</span>
-        (content, (function(e) { Log.info("action", "item: {key}:{name}") }))
-      }, teams)
-    ListGroup.make_action(teamlist, AppText.no_teams())
+    List.map(function(team) {
+      key = team.key
+      name = team.name
+      content = <span class="name label label-{team.color}">{team.name}</span>
+      // Return list item with onclick handler.
+      (content, do_open(key, super, _))
+    }, teams) |>
+    ListGroup.make(_, AppText.no_teams())
   }
 
   /**

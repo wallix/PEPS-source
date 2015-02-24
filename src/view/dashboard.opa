@@ -221,16 +221,16 @@ module Dashboard {
     summary = flush_files(summary)
     rendered =
       StringMap.fold(function (key, elts, list) {
-        list <+> render_generic("new", "team", "team", "users-o", "info", Team.get_name, key, elts)
+        list <+> render_generic("new", "team", "team", "users-o", "danger-inverse", Team.get_name, key, elts)
       }, summary.addteam, <></>) |>
       StringMap.fold(function (key, elts, list) {
-        list <+> render_generic("deleted", "team", "team", "users-o", "info", Team.get_name, key, elts)
+        list <+> render_generic("deleted", "team", "team", "users-o", "danger-inverse", Team.get_name, key, elts)
       }, summary.delteam, _) |>
       StringMap.fold(function (key, elts, list) {
-        list <+> render_generic("new", "user", "user", "user-o", "danger", User.get_name, key, elts)
+        list <+> render_generic("new", "user", "user", "user-o", "danger-inverse", User.get_name, key, elts)
       }, summary.adduser, _) |>
       StringMap.fold(function (key, elts, list) {
-        list <+> render_generic("left", "user", "user", "user-o", "danger", User.get_name, key, elts)
+        list <+> render_generic("left", "user", "user", "user-o", "danger-inverse", User.get_name, key, elts)
       }, summary.deluser, _)
     // Return the updated summary.
     if (not(summary.suffixDone))
@@ -267,7 +267,7 @@ module Dashboard {
         <li class="list-group-item dashboard-entry entry-file">
           <i class="fa fa-file-o pull-left"/>{info}
           <div class="dashboard-content">
-            <span class="pull-left label label-success">{label}</span>
+            <span class="pull-left label label-success-inverse">{label}</span>
             <div class="dashboard-inner">{list}</div>
           </div>
         </li>
@@ -388,9 +388,9 @@ module Dashboard {
           from = match (from) {
             case {internal: ~{email ...}}
             case {external: email}:
-              <span class="pull-left label label-blue" title="{Email.address_to_string(email.address)}" rel="tooltip">
+              <span class="pull-left label label-info-inverse" title="{Email.address_to_string(email.address)}" rel="tooltip">
                 {Email.to_name(email)}</span>
-            case {unspecified: email} -> <span class="label label-blue">{email}</span>
+            case {unspecified: email} -> <span class="label label-info-inverse">{email}</span>
           }
           ( <>{info}
             <div class="dashboard-content">

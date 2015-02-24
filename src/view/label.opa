@@ -436,22 +436,22 @@ LabelView = {{
     }</span>
 
   @server_private
-  build_labels(labels:list(Label.t), with_admin:bool) =
-    labels_list =
-      List.map(label ->
-        id = label.id
-        lb = Label.to_importance(label.category)
-        level = Label.get_level(label)
-        lvl = if level > 0 then AppConfig.level_view(level) else ""
-        content = <div class="pull-right">
-          <span class="badge">{lvl}</span>
-        </div> <+>
-        WB.Label.make(
-          <span class="name" onclick={do_open(id, with_admin, _)}>{label.name}</span>
-        , lb)
-        (content, (e -> Log.info("action", "item: {id}")))
-      , labels)
-    ListGroup.make_action(labels_list, AppText.no_labels())
+  build_labels(labels: list(Label.t), with_admin:bool) =
+    List.map(label ->
+      id = label.id
+      lb = Label.to_importance(label.category)
+      level = Label.get_level(label)
+      lvl = if level > 0 then AppConfig.level_view(level) else ""
+      content = <div class="pull-right">
+        <span class="badge">{lvl}</span>
+      </div> <+>
+      WB.Label.make(
+        <span class="name">{label.name}</span>
+      , lb)
+      // Return list item with onlick handler.
+      (content, do_open(id, with_admin, _))
+    , labels) |>
+    ListGroup.make(_, AppText.no_labels())
 
   /** Build **/
 
@@ -459,11 +459,6 @@ LabelView = {{
   select_if(xhtml:xhtml, sel:bool) =
     if sel then Xhtml.add_attribute_unsafe("selected", "selected", xhtml)
     else xhtml
-
-  @client
-  form_ready(e:Dom.event) =
-    do radio_onclick(e)
-    void
 
   @server_private
   label_id =
@@ -540,114 +535,110 @@ LabelView = {{
 
 
   @server_private
-  build_label_view(state:Login.state, prev_label_opt:option(Label.t), with_admin) =
+  build_label_view(state: Login.state, label: option(Label.t), with_admin) =
     is_admin = with_admin && Login.is_admin(state)
-    (pre_label_name, pre_label_descr, pre_label_level, pre_label_teams,
-     personal, shared, not_protected, restricted_diffusion, internal,
-     allow_internet, encrypt) =
-      match prev_label_opt
-      {some=label} -> (label.name, label.description, "{Label.get_level(label)}", String.concat(",", Label.get_teams(label)),
-                       Label.is_personal(label), Label.is_shared(label),
-                       Label.is_unprotected(label), Label.is_classified(label), Label.is_internal(label),
-                       Label.allows_internet(label), Label.encrypt(label.category))
-      {none} -> ("", "", "1", "", true, false, true, false, false, true, false)
-    add_btn =
-      match prev_label_opt
-      {some=label} -> <a onclick={do_add_team(state.key, label, with_admin, _)} class="fa fa-plus-circle-o"/>
-      {none} -> <></>
-    name_line =
+    ( name, description, level, pre_label_teams, personal, shared,
+      not_protected, classified, internal, internet, encrypt ) =
+      match label with
+      | {some= label} -> (
+          label.name, label.description, "{Label.get_level(label)}",
+          String.concat(",", Label.get_teams(label)),
+          Label.is_personal(label), Label.is_shared(label),
+          Label.is_unprotected(label), Label.is_classified(label), Label.is_internal(label),
+          Label.allows_internet(label), Label.encrypt(label.category)
+        )
+      | {none} -> ("", "", "1", "", true, false, true, false, false, true, false)
+      end
+    dosave = save(label, save_callback(with_admin, _), _) // Save action.
+    name =
       Form.line({Form.Default.line with
         label= AppText.name(); id= "label_name";
-        value= pre_label_name;
-        action= some(save(prev_label_opt, save_callback(with_admin, _), _))
+        value= name; action= some(dosave)
       })
-    descr_line =
+    description =
       Form.line({Form.Default.line with
         label= AppText.description(); id= "label_description";
-        value= pre_label_descr;
-        action= some(save(prev_label_opt, save_callback(with_admin, _), _))
+        value= description; action= some(dosave)
       })
-    level_line =
+    level =
       if not(is_admin) then <></>
       else
         Form.line({Form.Default.line with
-          label=@i18n("Minimum level"); id="label_level";
-          typ="number"; value=pre_label_level;
-          display=restricted_diffusion;
+          label= @i18n("Minimum level"); id= "label_level";
+          typ= "number"; value= level;
+          display= classified;
         })
-    encryption =
-      if (is_admin) then Checkbox.make("label_encryption", AppText.encryption(), encrypt)
-      else <></>
-    internet =
-      if (is_admin) then Checkbox.make("allow_internet", AppText.allow_internet(), allow_internet)
-      else <></>
-    teams_inner =
-      <>
-        <label class="control-label">{AppText.teams()} {add_btn}</label>
-        <div id="label_teams">{Option.map(label -> get_label_teams(label, with_admin), prev_label_opt) ? <></>}</div>
-      </>
-    teams_line =
-      if restricted_diffusion && Option.is_some(prev_label_opt) then
-        <div id="label_teams-form-group" class="form-group">{teams_inner}</div>
-      else
-        <div id="label_teams-form-group" class="form-group" style="display:none">{teams_inner}</div>
-    save_text = if Option.is_some(prev_label_opt) then AppText.save()
-                else AppText.create()
+    encryption = if (is_admin) then Checkbox.make("label_encryption", AppText.encryption(), encrypt, classified) else <></>
+    internet = if (is_admin) then Checkbox.make("allow_internet", AppText.allow_internet(), internet, not_protected) else <></>
+    // Not displayed at label creation, even for classified labels.
+    // TODO: implement team selector for this case.
+    teams =
+      match (label) with
+      | {some= label} ->
+        style = if (classified) then "" else "display:none;"
+        <div id="label_teams-form-group" class="form-group" style="{style}">
+          <label class="control-label">{AppText.teams()}
+            <a onclick={do_add_team(state.key, label, with_admin, _)} class="fa fa-plus-circle-o"/>
+          </label>
+          <div id="label_teams">{get_label_teams(label, with_admin)}</div>
+        </div>
+      | {none} -> <></>
+      end
+    save_text = if Option.is_some(label) then AppText.save() else AppText.create()
     save_button =
-      match Option.map(_.category, prev_label_opt) with
+      match Option.map(_.category, label) with
       | {some={internal}} -> <></>
       | _ ->  WB.Button.make({
               button=<>{@i18n("Save changes")}</>
-              callback=save(prev_label_opt, save_callback(with_admin, _), _)}, [{primary}])
-    delete_button =
+              callback=dosave}, [{primary}])
+      end
+    delete =
       if internal then <></>
       else
-        match prev_label_opt
-        {some=label} ->
+        match label with
+        | {some= label} ->
           <div class="pull-right">
             <a class="btn btn-sm btn-default" onclick={delete(label.id, with_admin, _)}>
               <i class="fa fa-trash-o"/> {AppText.delete()}
             </a>
           </div>
-        {none} -> <></>
+        | {none} -> <></>
+        end
     title =
-      match prev_label_opt with
+      match label with
       | {none} -> AppText.create_label()
       | {some=label} -> AppText.edit_label(label.name)
-
+      end
+    kind =
+      if internal then <span class="label label-warning">{AppText.Internal()}</span>
+      else
+        Radio.list(
+          if is_admin then [
+            { id= "not_protected" value= "not_protected"
+              text= <span class="label label-success-inverse">{AppText.Not_Protected()}</span>
+              checked= not_protected onclick= some(radio_onclick) },
+            { id= "restricted_diffusion" value= "restricted_diffusion"
+              text= <span class="label label-danger-inverse">{@i18n("Restricted Diffusion")}</span>
+              checked= classified onclick= some(radio_onclick) }
+          ] else [
+            { id= "personal" value= "personal"
+              text= <span class="label label-default">{AppText.Personal()}</span>
+              checked= personal onclick= none },
+            { id= "shared" value= "shared"
+              text= <span class= "label label-warning">{AppText.shared()}</span>
+              checked= shared onclick= none }
+          ]
+        )
     Form.wrapper(
       <div class="pane-heading">
-        {delete_button}
+        {delete}
         <h3>{title}</h3>
       </div> <+>
-      name_line <+> descr_line <+>
-      level_line <+> encryption <+>
-      teams_line <+>
-
-      Form.label(
-        AppText.Category(), "",
-        (if internal then
-          <span class="label label-warning">{AppText.Internal()}</span>
-         else
-          Radio.list(
-          if is_admin then
-            [{id="not_protected" value="not_protected" checked=not_protected
-              text=<span class="label label-success-inverse">{AppText.Not_Protected()}</span> onclick=some(radio_onclick)},
-              {id="restricted_diffusion" value="restricted_diffusion"
-               checked=restricted_diffusion
-               text=<span class="label label-danger-inverse">{@i18n("Restricted Diffusion")}</span>
-               onclick=some(radio_onclick)}]
-          else
-            [{id="personal" value="personal" checked=personal
-           text=<span class="label label-default">{AppText.Personal()}</span> onclick=some(radio_onclick)},
-           {id="shared" value="shared" checked=shared
-            text=<span class="label label-warning">{AppText.shared()}</span>
-            onclick=some(radio_onclick)}]
-        ))
-      ) <+> internet <+>
-      <div class="form-group">{save_button}</div>
+      name <+> description <+>
+      level <+> encryption <+> teams <+>
+      Form.label(AppText.Category(), "", kind) <+>
+      internet <+> <div class="form-group">{save_button}</div>
     , false)
-    |> Xhtml.add_onready(form_ready, _)
 
   @server_private
   build(state:Login.state, admin:bool) =

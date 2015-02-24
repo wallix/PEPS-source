@@ -146,7 +146,7 @@ module FolderView {
       </>, (@public_env(do_edit(folder.id, _)))) +> acc
     }, folders, [])
 
-    ListGroup.make_action(list, @i18n("No folders"))
+    ListGroup.make(list, @i18n("No folders"))
   }
 
   /** {1} Build */

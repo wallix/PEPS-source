@@ -482,17 +482,18 @@ module ContactView {
             }
         }
       picture = profile_picture(contact, false)
+      onclick = do_open_contact(contact.id, user, false, _)
 
       // FIXME: require key to call signature
       // Also : move this action to listed email addresses (instead of user icon).
       // ondblclick={ComposeView.write_to(email, _, "" /* signature */ )}/>
-      picture <+>
-      <span class="contact"
-          onclick={do_open_contact(contact.id, user, false, _)}>
-        {name}
-      </span> <+>
-      ( if (contact.status == {blocked}) <span class="fa fa-lg fa-ban"/>
-        else <></> )
+      elt =
+        picture <+>
+        <span class="contact">{name}</span> <+>
+        ( if (contact.status == {blocked}) <span class="fa fa-lg fa-ban"/>
+          else <></> )
+      // Return list item with onclick handler.
+      (elt, onclick)
     }, contacts) |>
     ListGroup.make(_, AppText.no_contacts())
   }

@@ -14,7 +14,7 @@
 @gray-dark:                    #5E5E6E;
 @gray-darker:                  #1D1D1D;
 
-@brand-primary:                #5A93FD;
+@brand-primary:                #4684F9;
 @brand-danger:                 #FF6D61;
 @brand-success:                #8DDF58;
 @brand-warning:                #FFCD00;
@@ -23,7 +23,7 @@
 @brand-green:                  #47D6A3;
 @brand-red:                    #FF2851;
 
-@brand-danger-bg:              #FFE7D7;
+@brand-danger-bg:              #FDDFDC;
 @brand-blue-bg:                #CFF4FD;
 @brand-info-bg:                #E8DBF9;
 @brand-success-bg:             #DAF7C8;
@@ -867,7 +867,7 @@ form:not(.form-horizontal) {
   border-color: @brand-success-bg;
 }
 .label-danger-inverse {
-  color: @brand-danger;
+  color: @brand-danger-text;
   background-color: @brand-danger-bg;
   border-color: @brand-danger-bg;
 }
@@ -1733,23 +1733,25 @@ form .pane-heading {
   color:@text-color;
   padding-top:15px;
   padding-bottom:15px;
-  line-height: 24px;
+  line-height: 20px;
+  min-height: 64px;
   .box-shadow-light;
 
   &:last-child {
     border-bottom: none;
   }
   .fa {
-    font-size: 28px;
-    line-height: 24px;
-    margin-left: -5px;
+    font-size: 36px;
+    margin-top: -3px;
+    color:@caption-color;
   }
   .msg-date {
     color: @gray-light;
     font-weight: 300;
+    margin-top: 4px;
   }
   .dashboard-content {
-    padding-left: 32px;
+    padding-left: 52px;
     padding-right: 70px;
     .dashboard-section{
       text-transform: capitalize;
@@ -1767,20 +1769,21 @@ form .pane-heading {
       .ellipsis;
     }
     .dashboard-inner {
-      padding-left: 108px;
+      padding-left: 116px;
+      margin-top: 4px;
     }
   }
   &.entry-message {
-    .fa, .dashboard-section {color:@brand-blue;}
+    .dashboard-section {color:@brand-info;}
     }
   &.entry-user {
-    .fa, .dashboard-section {color:@brand-danger;}
+    .dashboard-section {color:@brand-danger;}
     }
   &.entry-team{
-    .fa, .dashboard-section {color:@brand-info;}
+    .dashboard-section {color:@brand-danger;}
     }
   &.entry-file {
-    .fa, .dashboard-section {color:@brand-success;}
+    .dashboard-section {color:@brand-success;}
   }
 }
 
@@ -1979,7 +1982,7 @@ form .pane-heading {
     }
   }
   .message {
-    margin:15px;
+    margin:20px;
     background-color: @white;
     border-radius: 5px;
     .box-shadow-light;
