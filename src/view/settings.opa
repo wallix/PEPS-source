@@ -86,7 +86,7 @@ SettingsView = {{
 
       prompt =
         <>
-        <div id="passwordnotify"/> 
+        <div id="passwordnotify"/>
         {Form.wrapper(
           Form.form_group(
             <input type=password id="oldpassword" class="form-control" placeholder="{@i18n("Previous password")}"></input>
@@ -130,7 +130,7 @@ SettingsView = {{
           format= UserController.format_contact
         }
         display = ContactView.edit_contact(contact, options)
-        password = WB.Button.make({button= <><i class="fa fa-refresh"/> {@i18n("Change password")}</> callback=passwordInput}, [{`default`}]) 
+        password = WB.Button.make({button= <><i class="fa fa-refresh"/> {@i18n("Change password")}</> callback=passwordInput}, [{`default`}])
           |> Xhtml.update_class("btn-sm", _)
         Utils.panel_default(
           Utils.panel_heading(AppText.Profile()) <+>

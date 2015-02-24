@@ -52,7 +52,10 @@ module ContactController {
       callback({failure: AppText.no_contact_name()})
   }
 
-  /** If contact is user profile, propagate the change to the user information. */
+  /**
+   * If contact is user profile, propagate the change to the user information
+   * and add the same picture to contacts with the same address.
+   */
   exposed function set_picture(Contact.id id, File.id fid) {
     state = Login.get_state()
     if (not(Login.is_logged(state))) {failure: AppText.login_please()}
@@ -62,15 +65,19 @@ module ContactController {
           if (contact.owner != state.key) {failure: AppText.unauthorized()}
           else
             // Function {FileController.get_thumbnail} checks both login and access to file.
-          match (FileController.get_thumbnail(fid)) {
-            case {some: (raw, thumbnail)}:
-              Contact.set_picture(id, raw)
-              if (id == state.key) User.set_picture(state.key, some(raw)) |> ignore
-              {success: thumbnail}
-            default:
-              warning("Could not find file")
-              {failure: AppText.missing_file(fid)}
-          }
+            match (FileController.get_thumbnail(fid)) {
+              case {some: (raw, thumbnail)}:
+                Contact.set_picture(id, raw)
+                if (id == state.key) {
+                  emails = List.map(_.elt, contact.info.emails)
+                  User.set_picture(state.key, some(raw)) |> ignore
+                  Contact.addPicture(emails, raw)
+                }
+                {success: (thumbnail, id == state.key)}
+              default:
+                warning("Could not find file")
+                {failure: AppText.missing_file(fid)}
+            }
         default: {failure: AppText.unauthorized()}
       }
   }

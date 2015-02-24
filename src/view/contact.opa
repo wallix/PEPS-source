@@ -187,7 +187,9 @@ module ContactView {
   }
   client function change_picture(Contact.id id, res) {
     match (res) {
-      case {success: dataUrl}: #{"{id}-picture"} = <img src={dataUrl} class="user-img"/>
+      case {success: (dataUrl, updateProfile)}:
+        #{"{id}-picture"} = <img src={dataUrl} class="user-img"/>
+        if (updateProfile) #profile_picture = <img src={dataUrl} class="user-img"/> // Update topbar profile picture.
       default: void
     }
   }

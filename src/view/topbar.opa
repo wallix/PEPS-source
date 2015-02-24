@@ -84,4 +84,10 @@ module TopbarView {
     }
   }
 
+  /** Change the profile picture. */
+  function setProfilePicture(RawFile.id photo) {
+    #profile_picture = <img src="/thumbnail/{photo}" class="user-img"/>
+  }
+
+
 }

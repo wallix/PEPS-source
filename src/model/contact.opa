@@ -325,6 +325,18 @@ module Contact {
     } else contact
   }
 
+  /**
+   * Assign an avatar to all contacts with one of the given mail addresses and which do not
+   * have a picture yet. This funciton should be called after setting the user picture in the
+   * profile settings.
+   */
+  function addPicture(list(Email.address) emails, RawFile.id photo) {
+    /webmail/addrbook/contacts[
+      info.emails[_].elt in emails and   // Correct email.
+      info.photos == []                 // No set user picture.
+    ] <- {info.photos: [{kind: "work", elt: photo}]}
+  }
+
   /** Create the contact associated with the provided user. */
   protected function profile(User.t user) {
     // Build the user profile. The contact's owner key is the new user.
