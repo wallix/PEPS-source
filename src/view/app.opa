@@ -38,7 +38,7 @@ module AppView {
           default: ""
         }
         url = "{app.url}/{Path.print(path)}{query}"
-        <iframe id="iframe_{appname}" seamless src={url} class="app-iframe" style="border-width:0px; width:100%;" onready={insertStyle(appname,_)}></iframe>
+        <iframe id="iframe_{appname}" seamless src={url} class="app-iframe" style="border-width:0px; width:100%; height:100%;"></iframe>
       default:
         <>{@i18n("Non-existant application")}</>
     }

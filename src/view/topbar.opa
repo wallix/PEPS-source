@@ -67,9 +67,18 @@ module TopbarView {
 
   /** Activate to right topbar element. */
   client function activate(Mode.t mode) {
+    // Activate the current mode.
     elt = #{Mode.class(mode)}
     Dom.select_siblings(elt) |> Dom.remove_class(_, "active")
     Dom.add_class(elt, "active")
+    // Toggle active app.
+    Dom.iter(function (app) {
+      if (Dom.has_class(app, "app-visible"))
+        Parser.parse(parser {
+          case "sidebar_" id=Rule.ident: Dom.add_class(#{id}, "active") // Toggle the topbar icon.
+          case .*: void
+        }, Dom.get_id(app))
+    }, Dom.select_class("app-sidebar"))
   }
 
   protected function build(state, mode) {

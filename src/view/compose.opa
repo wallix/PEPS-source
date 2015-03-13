@@ -166,12 +166,12 @@ ComposeView = {{
         multiple= true
         tags= true
         tokenSeparators= [",", " "]
-        placeholder= {string= "Recipients"}
+        // placeholder= {string= "Recipients"}
         data= {ajax = {
           url= "/search/addresses"
           cache= false
           delay= 250
-          minimumInputLength= 1
+          minimumInputLength= 0
         }}
         templateSelection= some(template)
       })
@@ -208,7 +208,7 @@ ComposeView = {{
         <div class="frow">
           <label class="control-label fcol">{name}:</label>
           <div id="{id}-inner" class="fcol fcol-lg">
-            <select id="{id}" onready={init(id, selection, _)} class="pull-left" style="width:100%;"/>
+            <select placeholder="Recipients" id="{id}" onready={init(id, selection, _)} class="pull-left" style="width:100%;"/>
           </div>
           <div class="fcol">
             <div class="fcol-right">

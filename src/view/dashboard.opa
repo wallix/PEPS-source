@@ -261,7 +261,8 @@ module Dashboard {
       }
       list = List.intersperse(<>, </>, summary.files.files)
       id = Dom.fresh_id()
-      date = <span id={id} onready={Misc.insert_timer(id, summary.files.date)}></span>
+      filedate = summary.files.date // IMPORTANT: do not replace in function call.
+      date = <span id={id} onready={Misc.insert_timer(id, filedate)}></span>
       info = <small class="msg-date pull-right">{date}</small>
       entry =
         <li class="list-group-item dashboard-entry entry-file">

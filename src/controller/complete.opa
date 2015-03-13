@@ -28,50 +28,13 @@ module AutoComplete {
    * @return the search results in JSON format.
    */
   protected function addresses(state, term) {
-    if (String.length(term) > 0) {
-      term = String.trim(term) |> String.lowercase
-      contacts = Contact.autocomplete(state.key, term)
-      users =
-        User.autocomplete(User.get_min_teams(state.key), term) |>
-        List.filter(function (i0) { not(List.exists(function (i1) { i0.text == i1.text }, contacts)) }, _) // Remove duplicates.
-      teams = Team.autocomplete(User.get_teams(state.key), term)
-      OpaSerialize.serialize({items: contacts ++ users ++ teams})
-    } else
-      "\{\"items\": []\}"
+    term = String.trim(term) |> String.lowercase
+    contacts = Contact.autocomplete(state.key, term)
+    users =
+      User.autocomplete(User.get_min_teams(state.key), term) |>
+      List.filter(function (i0) { not(List.exists(function (i1) { i0.text == i1.text }, contacts)) }, _) // Remove duplicates.
+    teams = Team.autocomplete(User.get_teams(state.key), term)
+    OpaSerialize.serialize({items: contacts ++ users ++ teams})
   }
-
-  /** Labels **/
-
-  // protected function labels(state, term, cat) {
-  //   term = String.lowercase(term)
-  //   labels = Label.autocomplete(state.key, cat)
-  //   List.filter(function (e) {
-  //     String.contains(String.lowercase(e.label), term)
-  //   }, labels) |> OpaSerialize.serialize(_)
-  // }
-
-  /** Shared files **/
-
-  // protected function shared_files(state, term, cat) {
-  //   term = String.lowercase(term)
-  //   files = FileToken.autocomplete(state.key, cat)
-  //   //do Ansi.jlog("shared_files: files=%y{files}%d")
-  //   List.filter(function (e) {
-  //     String.contains(String.lowercase(e.file), term)
-  //   }, files) |> OpaSerialize.serialize(_)
-  // }
-
-
-  // protected function addresses(string term) {
-  //     p = parser {
-  //       case "/addresses?term=" term=(.*) -> addresses(state, Text.to_string(term))
-  //       // case "/labels?term=" term=(.*) -> labels(state, Text.to_string(term), {personal})
-  //       // case "/security_labels?term=" term=(.*) -> labels(state, Text.to_string(term), {security})
-  //       // case "/shared_files?term=" term=(.*) -> shared_files(state, Text.to_string(term), {uploaded})
-  //       case .* -> ""
-  //     }
-  //     Parser.parse(p, s)
-  //   }
-  // }
 
 }

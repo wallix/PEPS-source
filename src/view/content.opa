@@ -364,7 +364,7 @@ module Content {
           loginbox(state)
         // Condition shown iff active licensing.
         else
-          <div id="appsidebar" class="pull-right" style="width:320px; display:none;"></div> <+>
+          <div id="appsidebar" class="app-sidebar" style="width:320px; display:none;"></div> <+>
           <div id="content" class="content"></div> <+>
           modals
       }</div>
@@ -485,6 +485,7 @@ module Content {
         case "sidebar_" id=Rule.ident:
           if (id != name) { // Spare the mode to load.
             Dom.remove_class(#{id}, "active") // Toggle the topbar icon.
+            Dom.remove_class(sidebar, "app-visible") // remove active class.
             Dom.hide(sidebar) // Hide the sidebar (do not destroy it: keep the state).
           }
         case .*: void
@@ -496,6 +497,7 @@ module Content {
     else Dom.show(sidebar) // Toggle the existing sidebar.
     // Activate topbar icon.
     Dom.add_class(#{name}, "active")
+    Dom.add_class(#{"sidebar_{name}"}, "app-visible")
   }
 
   /** Hide an app's sidebar. */
@@ -504,6 +506,7 @@ module Content {
     Dom.iter(Dom.hide, #{"sidebar_{name}"})
     Dom.hide(#appsidebar)
     Dom.remove_class(#{name}, "active")
+    Dom.remove_class(#{"sidebar_{name}"}, "app-visible")
   }
 
   /** Build a sidebar. */

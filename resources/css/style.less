@@ -596,7 +596,7 @@ form:not(.form-horizontal) {
 
 // Input UI
 .form-control, input[type="text"], input[type="password"], .ui-autocomplete-input, .uneditable-input {
-  color: @text-color;
+  color: @gray-darker;
   border-radius: 5px;
   font-weight: 400;
   height: 32px;
@@ -841,6 +841,7 @@ form:not(.form-horizontal) {
   border-width: 0;
 }
 .label-aquamarine {
+  color: @brand-danger-text;
   border-color: @brand-danger-border;
 }
 // Labels
@@ -929,6 +930,7 @@ form:not(.form-horizontal) {
   }
   .select2-selection--multiple .select2-selection__choice__remove {
     color:@gray;
+    font-weight: 300;
   }
   .select2-selection--multiple .select2-selection__choice {
     background-color: @white;
@@ -1566,6 +1568,17 @@ a.list-group-item {
   a:hover {
     text-decoration: none;
   }
+}
+
+// Chat sidebar
+
+.app-sidebar {
+  position: fixed;
+  top: @navbar-height;
+  right: 0;
+  bottom:0;
+  z-index: 3000;
+  .box-shadow(0 1px 10px rgba(0,0,0,0.25));
 }
 
 
