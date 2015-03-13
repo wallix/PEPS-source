@@ -364,9 +364,11 @@ module Content {
           loginbox(state)
         // Condition shown iff active licensing.
         else
+          <div id="appsidebar" class="pull-right" style="width:320px; display:none;"></div> <+>
           <div id="content" class="content"></div> <+>
           modals
       }</div>
+
     }
 
   protected function selector(state, URN.t urn) {
@@ -464,6 +466,55 @@ module Content {
   /** Refresh the view. */
   function refresh() {
     update(URN.get(), true)
+  }
+
+  /** Toggle an app sidebar. */
+  client function toggleSidebar(Mode.t mode, _evt) {
+    name = Mode.class(mode)
+    if (Dom.has_class(#{name}, "active")) hideSidebar(mode)
+    else showSidebar(mode)
+  }
+
+  /** Display an app sidebar. */
+  client function showSidebar(Mode.t mode) {
+    name = Mode.class(mode)
+    Dom.show(#appsidebar)
+    // Close open sidebars.
+    Dom.iter(function (sidebar) {
+      Parser.parse(parser {
+        case "sidebar_" id=Rule.ident:
+          if (id != name) { // Spare the mode to load.
+            Dom.remove_class(#{id}, "active") // Toggle the topbar icon.
+            Dom.hide(sidebar) // Hide the sidebar (do not destroy it: keep the state).
+          }
+        case .*: void
+      }, Dom.get_id(sidebar))
+    }, Dom.select_class("app-sidebar"))
+    // Look up mode sidebar.
+    sidebar = #{"sidebar_{name}"}
+    if (Dom.is_empty(sidebar)) #appsidebar += buildSidebar(mode) // Load the sidebar.
+    else Dom.show(sidebar) // Toggle the existing sidebar.
+    // Activate topbar icon.
+    Dom.add_class(#{name}, "active")
+  }
+
+  /** Hide an app's sidebar. */
+  client function hideSidebar(Mode.t mode) {
+    name = Mode.class(mode)
+    Dom.iter(Dom.hide, #{"sidebar_{name}"})
+    Dom.hide(#appsidebar)
+    Dom.remove_class(#{name}, "active")
+  }
+
+  /** Build a sidebar. */
+  exposed function buildSidebar(Mode.t mode) {
+    state = Login.get_state()
+    name = Mode.class(mode)
+    if (not(Login.is_logged(state))) login_please
+    else
+      <div class="app-sidebar" id="sidebar_{name}" style="width: 320px;">
+        {selector(state, URN.make(mode, []))}
+      </div>
   }
 
 }

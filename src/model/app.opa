@@ -19,17 +19,24 @@
 
 package com.mlstate.webmail.model
 
+/** The way the application will be inserted into the view. */
+type App.display =
+  {fullscreen} or // The app iframe will take all of #content
+  {sidebar}       // The app is inserted in a toggable sidebar.
+
 /** The application is identified by its consumer key. */
 type App.t = {
   string name,
   string url,           // App's base url. It must NOT end with a '/'.
   option(string) icon,  // Icon used in the topbar.
+  App.display display,
   // OAuth parameters.
   string oauth_consumer_key,
   string oauth_consumer_secret
 }
 
 database App.t /webmail/apps[{oauth_consumer_key}]
+database /webmail/apps[_]/display = {fullscreen}
 
 module App {
 
@@ -39,18 +46,27 @@ module App {
   /** Random key generator. */
   function genkey() { Random.generic_string("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",32) }
 
+  function parseDisplay(string display) {
+    match (display) {
+      case "fullscreen": {fullscreen}
+      case "sidebar": {sidebar}
+      default: {fullscreen}
+    }
+  }
+
   /**
    * Create and add a new application.
    * @param name the application's name
    * @param url the base url, must be a valid url.
    */
-  function create(string name, string url) {
+  function create(string name, string url, string display) {
     if (exists(name)) {failure: "conflicting app name: {name}"}
     else {
       // Create key / secret pair.
       oauth_consumer_key = genkey()
       oauth_consumer_secret = genkey()
-      app = ~{ name, url, oauth_consumer_key, oauth_consumer_secret, icon: none }
+      display = parseDisplay(display)
+      app = ~{ name, url, oauth_consumer_key, oauth_consumer_secret, icon: none, display }
       /webmail/apps[oauth_consumer_key == oauth_consumer_key] <- app
       {success: app}
     }
@@ -62,6 +78,11 @@ module App {
   function exists(string name) { DbUtils.option(/webmail/apps[name == name]) |> Option.is_some }
   /** Return the app name. */
   function name(string oauth_consumer_key) { ?/webmail/apps[~{oauth_consumer_key}]/name }
+
+  /** Change the icon of an application. */
+  function setIcon(string oauth_consumer_key, string icon) {
+    /webmail/apps[oauth_consumer_key == oauth_consumer_key] <- {icon: some(icon); ifexists}
+  }
 
   /** Find an app by its name. */
   function find(string name) { DbUtils.uniq(/webmail/apps[name == name]) }

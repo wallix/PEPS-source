@@ -37,7 +37,6 @@ module Notifications {
     }
 
     private function insertone(Notification.badge badge) {
-      log("Badge.insert: {badge}")
       #{badge.id} = make(badge.level, badge.importance)
     }
 

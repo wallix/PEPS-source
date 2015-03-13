@@ -215,9 +215,7 @@ function thumbnail() {
   }
 }
 
-/**
- * App Server
- */
+/** App Server. */
 
 resources = @static_resource_directory("resources")
 favicon = @static_resource("resources/img/favicon.ico")

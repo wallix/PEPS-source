@@ -168,10 +168,10 @@ module AdminController {
   module App {
 
     /** App registration. */
-    exposed @async function void create(name, url, callback) {
+    exposed @async function void create(name, url, string display, callback) {
       state = Login.get_state()
       if (not(Login.is_super_admin(state))) callback({failure: AppText.unauthorized()})
-      else @toplevel.App.create(name, url) |> config(_, callback)
+      else @toplevel.App.create(name, url, display) |> config(_, callback)
     }
 
     /** Delete an existing application. The identifier is the app's consumer key. */
@@ -181,6 +181,16 @@ module AdminController {
       else {
         @toplevel.App.delete(key)
         callback({success})
+      }
+    }
+
+    /** Change the icon of an application. */
+    exposed function setIcon(string key, string icon) {
+      state = Login.get_state()
+      if (not(Login.is_super_admin(state))) {failure: AppText.unauthorized()}
+      else {
+        @toplevel.App.setIcon(key, icon)
+        {success}
       }
     }
 

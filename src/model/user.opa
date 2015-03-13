@@ -118,7 +118,7 @@ database /webmail/preferences[_]/notifications = {true}
 database /webmail/preferences[_]/search_includes_send = {true}
 database /webmail/preferences[_]/topbar/hd/mode = {error}
 database /webmail/preferences[_]/topbar/hd/mode/messages = {inbox}
-database /webmail/preferences[_]/topbar/hd/display = {normal}
+database /webmail/preferences[_]/topbar/hd/display full
 database /webmail/preferences[_]/onboarding = { false }
 
 module User {

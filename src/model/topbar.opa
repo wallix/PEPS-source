@@ -20,10 +20,10 @@
 package com.mlstate.webmail.model
 
 /** Specificies the way topbar elements are displayed. */
+type Icon.display = {normal} or {hide} or {int priority}
 type Topbar.display =
-  {normal} or
-  {hide} or
-  {int priority}
+  { Icon.display icon,    // Icon display.
+    App.display content } // Content display.
 
 /** Type of callback. */
 type Topbar.callback =
@@ -47,10 +47,15 @@ type Topbar.preferences = list(Topbar.preference)
 
 module Topbar {
 
+  /** Shortcut for a fullscreen display with a specified icon prority. */
+  @expand function fullscreen(int priority) {
+    {content: {fullscreen}, icon: ~{priority}}
+  }
+
   /** Convert an application setting to a topbar item. */
 	@expand function makeitem(app) {
 		{ mode: {app: app.name, active: ""},
-      display: {normal},
+      display: {content: app.display, icon: {normal}},
       icon: app.icon ? "fa-cube",
       title: app.name }
 	}
@@ -60,7 +65,7 @@ module Topbar {
    * have the lowest priority.
    */
   function priority(Topbar.item item) {
-    match (item.display) {
+    match (item.display.icon) {
       case ~{priority}: priority
       default: Limits.max_int
     }
@@ -68,24 +73,24 @@ module Topbar {
 
   /** Return true iff the element is hidden. */
   function hidden(Topbar.item item) {
-    item.display == {hide}
+    item.display.icon == {hide}
   }
 
   /** Return true iff the element is visible. */
   function visible(Topbar.item item) {
-    item.display != {hide}
+    item.display.icon != {hide}
   }
 
   /** Default topbar settings. */
   server function core() {[
-    {mode: {dashboard: "all"}, display: {priority: 0}, icon: "fa-home", title: AppText.dashboard()},
-    {mode: {messages: {inbox}}, display: {priority: 1}, icon: "fa-envelope", title: AppText.messages()},
-    {mode: {files: "files"}, display: {priority: 2}, icon: "fa-files", title: AppText.files()},
-    {mode: {people: "contacts"}, display: {priority: 3}, icon: "fa-users", title: AppText.people()}
+    {mode: {dashboard: "all"}, display: fullscreen(0), icon: "fa-home", title: AppText.dashboard()},
+    {mode: {messages: {inbox}}, display: fullscreen(1), icon: "fa-envelope", title: AppText.messages()},
+    {mode: {files: "files"}, display: fullscreen(2), icon: "fa-files", title: AppText.files()},
+    {mode: {people: "contacts"}, display: fullscreen(3), icon: "fa-users", title: AppText.people()}
   ]}
 
   server function admin() {[
-    {mode: {admin: "settings"}, display: {priority: 4}, icon: "fa-cog", title: AppText.admin()}
+    {mode: {admin: "settings"}, display: fullscreen(4), icon: "fa-cog", title: AppText.admin()}
   ]}
 
   /**

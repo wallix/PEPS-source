@@ -39,6 +39,14 @@ module AppConfig {
   // Database.
   db_version = 1
 
+  // Available icons.
+  icons = [
+    "fa-cube", "fa-bell",
+    "fa-calendar", "fa-briefcase",
+    "fa-comment", "fa-comments",
+    "fa-browsers", "fa-camera"
+  ]
+
   // web app domain
   default_domain = "localhost"
 

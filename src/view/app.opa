@@ -20,11 +20,11 @@
 
 module AppView {
 
-  client function insert_style(_evt) {
+  client function insertStyle(string appname, _evt) {
     dim = Dom.get_size(#content)
-    Dom.set_style(#app_iframe, [
-      {height: {px: dim.y_px}},
-      {width: {px: dim.x_px}}
+    Log.notice("[AppView]", "content dim: {dim}")
+    Dom.set_style(#{"iframe_{appname}"}, [
+      {height: {px: dim.y_px}}
     ])
   }
 
@@ -38,7 +38,7 @@ module AppView {
           default: ""
         }
         url = "{app.url}/{Path.print(path)}{query}"
-        <iframe id="app_iframe" seamless src={url} class="app-iframe" style="border-width:0px;" onready={insert_style}></iframe>
+        <iframe id="iframe_{appname}" seamless src={url} class="app-iframe" style="border-width:0px; width:100%;" onready={insertStyle(appname,_)}></iframe>
       default:
         <>{@i18n("Non-existant application")}</>
     }

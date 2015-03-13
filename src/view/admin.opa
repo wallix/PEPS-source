@@ -203,8 +203,9 @@ AdminView = {{
     @client create(_evt) =
       name = Dom.get_value(#new_app_name)
       url = Dom.get_value(#new_app_url) |> String.trim
+      display = Radio.get_checked([#display_fullscreen, #display_sidebar], "fullscreen")
       if name != "" && valid_http(url)
-      then AdminController.App.create(name, url, callback)
+      then AdminController.App.create(name, url, display, callback)
       else if name == ""
       then callback({failure=@i18n("Please enter the application's name")})
       else callback({failure=@i18n("Link is not a valid HTTP address")})
@@ -221,7 +222,7 @@ AdminView = {{
       rows = List.fold(app, list ->
         list <+>
         <tr>
-          <td><span class="fa fa-lg {app.icon ? "fa-cube"}"></span></td>
+          <td><span id="{app.oauth_consumer_key}" class="fa fa-lg {app.icon ? "fa-cube"}" onclick={chooseIcon(app.oauth_consumer_key, _)}></span></td>
           <td>{app.name}</td><td>{app.url}</td>
           <td>{app.oauth_consumer_key}</td><td>{app.oauth_consumer_secret}</td>
           <td><a class="pull-right" onclick={delete(app.oauth_consumer_key, _)}
@@ -254,6 +255,14 @@ AdminView = {{
     @server_private build(state) =
       apps = @toplevel.App.list()
       list = panel(apps)
+      display =
+        Radio.list([
+          { id= "display_fullscreen" value= "fullscreen"
+            text= <>{@i18n("Fullscreen")}</> checked= true onclick= none },
+          { id= "display_sidebar" value= "sidebar"
+            text= <>{@i18n("Sidebar")}</> checked= false onclick= none }
+        ])
+
       <div id="apps_panel">
         <div id="inner_apps_panel">{list}</div>
         {Utils.panel_default(
@@ -262,6 +271,7 @@ AdminView = {{
             Form.wrapper(
               Form.line({Form.Default.line with label=AppText.name(); id="new_app_name"; value=""}) <+>
               Form.line({Form.Default.line with label=AppText.link(); id="new_app_url"; value=""}) <+>
+              Form.label(AppText.Display(), "", display) <+>
               <div class="form-group">{
                 (WB.Button.make({button=<>{AppText.Create_app()}</> callback=create(_)}, [{primary}])
                  |> Xhtml.add_attribute_unsafe("data-complete-text", AppText.create(), _)
@@ -271,6 +281,40 @@ AdminView = {{
             , false)
           ))}
       </div>
+
+    /** Change the application's icon. */
+    setIcon(modalId, key, icon, _evt) =
+      do AdminController.App.setIcon(key, icon) |> ignore
+      do Dom.set_class(#{key}, "fa fa-lg {icon}")
+      Dom.remove(#{modalId})
+
+    /** Build an icon chooser and insert it into the view. */
+    @publish iconChooser(key, pos) =
+      modalId = Dom.fresh_id()
+      icons = List.map(icon ->
+        <a onclick={setIcon(modalId, key, icon, _)} class="pull-left fade in">
+          <span class="fa fa-lg {icon}"/>
+        </a>, AppConfig.icons)
+      modal = Modal.make(modalId,
+        <></>,
+        <div>{icons}</div>,
+        <></>,
+        { Modal.default_options with backdrop=false static=false keyboard=false }
+      )
+      do #main -<- modal
+      dialog = Dom.select_inside(#{modalId}, Dom.select_class("modal-dialog"))
+      do Dom.set_width(dialog, 200)
+      do Dom.set_style_unsafe(dialog, [
+        {name="margin-left" value="{pos.x_px}px"},
+        {name="margin-top" value="{pos.y_px}px"}
+      ])
+      // do Dom.set_position(#{modalId}, pos)
+      Modal.show(#{modalId})
+
+    /** Open an icon chooser. */
+    @client chooseIcon(key, _evt) =
+      pos = Dom.get_position(#{key})
+      iconChooser(key, pos)
 
   }} // END APP
 

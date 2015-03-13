@@ -51,7 +51,11 @@ module TopbarView {
   function format(Topbar.item item, active) {
     mode = item.mode
     active = if (Mode.equiv(mode, active)) ["active"] else []
-    callback = Content.update_callback(URN.make(mode, []), _)
+    callback =
+      match (item.display.content) {
+        case {fullscreen}: Content.update_callback(URN.make(mode, []), _)
+        case {sidebar}: Content.toggleSidebar(mode, _)
+      }
 
     <li class={active} id={Mode.class(mode)}>
       <a onclick={callback}>
