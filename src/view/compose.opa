@@ -80,10 +80,27 @@ ComposeView = {{
     do Misc.toggle("{id}-fullscreen-toggle", "fa-expand", "fa-compress")
     if (Dom.has_class(dialog, "modal-fullscreen")) then
       do Dom.remove_class(dialog, "modal-fullscreen")
-      Dom.set_height(content, AppConfig.compose_height)
+      do Dom.set_height(content, AppConfig.compose_height)
+      adjust_content_height(id)
     else
       do Dom.add_class(dialog, "modal-fullscreen")
-      Dom.set_height(content, Dom.get_height(#main))
+      do Dom.set_height(content, Dom.get_height(#main))
+      adjust_content_height(id)
+
+  /**
+   * Adjust the content's height to fill up the space remaining in the
+   * compose modal.
+   */
+  @client adjust_content_height(id: string) =
+    header = Dom.get_outer_height(Dom.select_inside(#{id}, Dom.select_class("modal-header")))
+    footer = Dom.get_outer_height(Dom.select_inside(#{id}, Dom.select_class("modal-footer")))
+    all = Dom.get_height(Dom.select_inside(#{id}, Dom.select_class("modal-content")))
+    max = all - header - footer
+    content = Dom.get_height(#{"{id}-content"})
+    form = Dom.get_height(#{"{id}-form"})
+    // do log("adjust_content_height: all={all} header={header} footer={footer} content={content} form={form} final={max-form+content}")
+    Dom.set_height(#{"{id}-content"}, max-form+content)
+
 
   /**
    * Create a compose modal, add it to the main dom element, and bind it
@@ -237,7 +254,7 @@ ComposeView = {{
       <div class="form-group">
         <textarea id="{id}-content" class="form-control" rows="8">{init.content}</textarea>
       </div>
-    , true)
+    , true) |> Xhtml.add_id(some("{id}-form"), _)
 
   compose_buttons(state: Login.state, id: string, init: ComposeModal.init) =
     (savetext, saveloading, sendtext, sendloading) =

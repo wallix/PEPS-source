@@ -228,7 +228,7 @@ module Oauth {
               oauth_token_secret = new_token()
               oauth_callback = List.assoc("oauth_callback", params) ? "oob"
 
-              if (String.has_prefix(consumer.url, oauth_callback)) {
+              if (compareCallbacks(consumer.url, oauth_callback)) {
                 expires = Date.advance(Date.now(), Duration.days(AppConfig.oauth_token_duration_days))
                 /tokens/request_tokens[oauth_token == oauth_token] <- ~{
                   oauth_token, oauth_token_secret, oauth_callback,
@@ -239,7 +239,7 @@ module Oauth {
                     ("oauth_token_secret",oauth_token_secret),
                     ("oauth_callback_confirmed","true") ] }
               } else
-                {failure: @i18n("App provider does not match callback")}
+                {failure: @i18n("App provider does not match callback: {consumer.url} != {oauth_callback}")}
             } else
               {failure: @i18n("Invalid signature")}
           // Undefined consumer.
@@ -315,6 +315,22 @@ module Oauth {
         else {failure: @i18n("Invalid signature")}
       default: {failure: @i18n("Invalid token")}
     }
+  }
+
+  /**
+   * Compare callback URLs.
+   * URLs are declared compatible if either one is 'oob', or if they
+   * have the same domain and port.
+   */
+  function compareCallbacks(string url0, string url1) {
+    if (url0 == "oob" || url1 == "oob") true
+    else
+      match ((Uri.of_string(url0), Uri.of_string(url1))) {
+        case (
+          {some: {domain: domain0, port: port0 ...}},
+          {some: {domain: domain1, port: port1 ...}}): domain0 == domain1 && port0 == port1
+        default: false
+      }
   }
 
   /**

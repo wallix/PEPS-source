@@ -203,9 +203,11 @@ AdminView = {{
     @client create(_evt) =
       name = Dom.get_value(#new_app_name)
       url = Dom.get_value(#new_app_url) |> String.trim
-      if name != "" && url != "*" && valid_http(url) // && valid_http(provider)
+      if name != "" && valid_http(url)
       then AdminController.App.create(name, url, callback)
-      else callback({failure=@i18n("Provider is not a valid HTTP address")})
+      else if name == ""
+      then callback({failure=@i18n("Please enter the application's name")})
+      else callback({failure=@i18n("Link is not a valid HTTP address")})
 
     /** App deletion. */
     @client delete(key, _evt) =
