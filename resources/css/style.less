@@ -1577,6 +1577,7 @@ a.list-group-item {
   top: @navbar-height;
   right: 0;
   bottom:0;
+  background-color: @white;
   z-index: 3000;
   .box-shadow(0 1px 10px rgba(0,0,0,0.25));
 }
@@ -2560,7 +2561,7 @@ form .pane-heading {
 
 // Fullscreen
 @media (min-width: 768px) {
-  .modal-dialog {margin-top:52px;}
+  .modal-dialog {margin-top: (@navbar-height + 20px);}
 }
 .modal-dialog.modal-fullscreen {
   width: 90%;

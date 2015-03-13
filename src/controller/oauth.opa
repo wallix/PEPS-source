@@ -141,6 +141,7 @@ module OauthController {
             }
           case ~{failure}:
             warning("OAuthController.get_state: invalid request: {failure}")
+            warning("OAuthController.get_state: parameters: {params}")
             none
         }
       default: none

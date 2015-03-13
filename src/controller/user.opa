@@ -239,6 +239,17 @@ module UserController {
       nextPageToken: nextPageToken ? "" }
   }
 
+  /** Exposed for external applications. */
+  exposed function downloadAvatar(User.key key) {
+    state = Login.get_state()
+    if (Login.is_logged(state))
+      match (User.get_picture(key)) {
+        case {some: picture}: FileController.download_thumbnail("{picture}")
+        default: Resource.binary(Binary.create(0), "image/jpeg")
+      }
+    else Resource.binary(Binary.create(0), "image/jpeg")
+  }
+
   /**
    * Format a contact before saving it to memory.
    * In particular: make sure the internal email address is present, and propagate name changes to user.

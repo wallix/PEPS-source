@@ -243,6 +243,7 @@ dispatcher = parser {
       case POST  "/upload" ("?" .*)?: Chunk.upload()
       case POST  "/thumbnail" ("?" .*)? : thumbnail()
       case GET   "/thumbnail/" raw=(.*): FileController.download_thumbnail(Text.to_string(raw))
+      case GET   "/avatar/" user=(.*): UserController.downloadAvatar(Text.to_string(user))
       // Main
       case s=(.*) : main(Text.to_string(s))
     } |> Parser.Text.parse(_, t)
