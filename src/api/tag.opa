@@ -38,17 +38,23 @@ module Api {
    *  - {folder: {id: string, name: string}}
    *  - {label: {id: int, name: string, category: ..}}
    */
-  protected function get(Login.state state, string id) {
+  protected function get(Login.state state, string id, bool folderOnly) {
     fid = Folder.idofs(id)
-    match (Folder.get(state.key, fid)) {
-      case {some: box}: Http.Json.success({folder: formatFolder(box)})
-      default:
-        lid = Label.idofs_opt(id)
-        match (Option.bind(Label.get, lid)) {
-          case {some: label}: Http.Json.success({label: formatLabel(label)})
-          default: Http.Json.not_found("Undefined tag {id}")
-        }
-    }
+    if (folderOnly)
+      match (Folder.get(state.key, fid)) {
+        case {some: box}: Http.Json.success(formatFolder(box))
+        default: Http.Json.not_found("Undefined folder {id}")
+      }
+    else
+      match (Folder.get(state.key, fid)) {
+        case {some: box}: Http.Json.success({folder: formatFolder(box)})
+        default:
+          lid = Label.idofs_opt(id)
+          match (Option.bind(Label.get, lid)) {
+            case {some: label}: Http.Json.success({label: formatLabel(label)})
+            default: Http.Json.not_found("Undefined tag {id}")
+          }
+      }
   }
 
   /**
@@ -57,10 +63,14 @@ module Api {
    *
    *  {folders: [], labels: []}
    */
-  protected function list(Login.state state) {
-    folders = Folder.list(state.key) |> List.rev_map(formatFolder, _)
-    labels = Label.list(state.key, {shared}) |> List.rev_map(formatLabel, _)
-    Http.Json.success(~{folders, labels })
+  protected function list(Login.state state, bool folderOnly) {
+    if (folderOnly)
+      Folder.list(state.key) |> List.rev_map(formatFolder, _) |> Http.Json.success
+    else {
+      folders = Folder.list(state.key) |> List.rev_map(formatFolder, _)
+      labels = Label.list(state.key, {shared}) |> List.rev_map(formatLabel, _)
+      Http.Json.success(~{folders, labels})
+    }
   }
 
   /** Delete a folder or label. */
@@ -82,7 +92,7 @@ module Api {
    *  else a new tag will be created.
    * @param params: parameters passed to the update. They must be of the form:
    *     {label: {name: string, category: {personal} or {shared}}}
-   *  or {folder: {name: string}}
+   *  or {folder: {name: string}} or {name: string} (same as folder)
    */
   protected function save(Login.state state, option(string) id, params) {
     match (params) {
@@ -92,6 +102,7 @@ module Api {
           case {success: id}: Http.Json.success(~{id})
           case ~{failure}: Http.Json.bad_request(~{failure})
         }
+      case ~{name}
       case {folder: ~{name}}:
         fid = Option.map(Folder.idofs, id)
         match (FolderController.save(state, fid, name)) {

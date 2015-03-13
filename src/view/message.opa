@@ -224,7 +224,15 @@ MessageView = {{
     @private @client @expand unread(name) = <span><span class="email-unread">{@i18n("Unread by")}</span> {name}</span>
 
     /** The reedition handler. */
-    @private @client reedit(info, _evt) = ComposeView.reedit(info)
+    @private @client reedit(info, _evt) =
+      // Make sure the content has been fetched.
+      if (Dom.is_empty(#{"{info.mid}-content-toggle"}))
+      then ComposeView.reedit(info)
+      else
+        do Content.callback.set(-> ComposeView.reedit(info)) // Load the reedit as a callback to content fetch.
+        Dom.trigger(#{"{info.mid}-content-toggle"}, {click})
+
+
 
     /**
      * Refresh the status view with updated information obtained from
@@ -526,6 +534,13 @@ MessageView = {{
 
   Content = {{
 
+    /** Callback of the loading function. */
+    callback = Mutable.make(-> void): Mutable.t(-> void)
+    @client resetCallback() = callback.set(-> void)
+    @client runCallback() =
+      do callback.get()()
+      resetCallback()
+
     /**
      * Display the message content. If the message is encrypted, a popup will appear asking to
      * unlock the content. Ultimately, this function should also fold the reply parts.
@@ -585,7 +600,8 @@ MessageView = {{
               content = TweetNacl.Box.open(content, messageNonce, senderPublicKey, messageSecretKey)
               match (content) with
               | {some= content} ->
-                #{"{mid}-content"} <- Uint8Array.encodeUTF8(content) |> display
+                do #{"{mid}-content"} <- Uint8Array.encodeUTF8(content) |> display
+                runCallback()
               | _ -> Notifications.error(AppText.password(), <>{@i18n("PEPS failed to open this message")}</>)
               end
             | _ -> Notifications.error(AppText.password(), <>{@i18n("PEPS failed to open this message")}</>)
@@ -593,7 +609,9 @@ MessageView = {{
           | _ ->
             Notifications.error(AppText.password(), <>{@i18n("PEPS failed to open this message")}</>)
           end)
-      | _ -> #{"{mid}-content"} <- display(content)
+      | _ ->
+        do #{"{mid}-content"} <- display(content)
+        runCallback()
       end
 
   }} // END CONTENT
@@ -1075,12 +1093,24 @@ MessageView = {{
       do #{"{mid}-fulldate"} +<- Misc.date(created, true, Date.default_printer)
       do Dom.bind(#{"{mid}-attachments"}, {click}, toggle_infos(init, _)) |> ignore
       do Dom.bind(#{"{mid}-info-toggle"}, {click}, toggle_infos(init, _)) |> ignore
-      do Dom.bind(#{"{mid}-expand-reply"}, {click}, ComposeView.open_reply(init, from, created, replyto, modifysecurity, signature, _)) |> ignore
-      do Dom.bind(#{"{mid}-replyone"}, {click}, ComposeView.reply(init, from, created, replyto, false, modifysecurity, signature, _)) |> ignore
-      do Dom.bind(#{"{mid}-replyall"}, {click}, ComposeView.reply(init, from, created, replyto, true, modifysecurity, signature, _)) |> ignore
-      do Dom.bind(#{"{mid}-forward"}, {click}, ComposeView.forward(init, modifysecurity, signature, _)) |> ignore
+      do Dom.bind(#{"{mid}-expand-reply"}, {click}, waitContent(mid, ComposeView.open_reply(init, from, created, replyto, modifysecurity, signature, _), _)) |> ignore
+      do Dom.bind(#{"{mid}-replyone"}, {click}, waitContent(mid, ComposeView.reply(init, from, created, replyto, false, modifysecurity, signature, _), _)) |> ignore
+      do Dom.bind(#{"{mid}-replyall"}, {click}, waitContent(mid, ComposeView.reply(init, from, created, replyto, true, modifysecurity, signature, _), _)) |> ignore
+      do Dom.bind(#{"{mid}-forward"}, {click}, waitContent(mid, ComposeView.forward(init, modifysecurity, signature, _), _)) |> ignore
       do Dom.bind(#{"{mid}-edit"}, {click}, (_ -> ComposeView.edit(init))) |> ignore
       Dom.bind(#{"{mid}-send-reply-button"}, {click}, Reply.send(mid, from, replyto, signature, _)) |> ignore
+
+    /**
+     * Generate an event handler that will perform its action only after the message
+     * content has been loaded.
+     */
+    @client waitContent(mid: string, action: 'a -> void, evt: 'a): void =
+      // Make sure the content has been fetched.
+      if (Dom.is_empty(#{"{mid}-content-toggle"}))
+      then action(evt)
+      else
+        do Content.callback.set(-> action(evt)) // Load the action as a callback to content fetch.
+        Dom.trigger(#{"{mid}-content-toggle"}, {click}) // Trigger the content fetch.
 
   }} // END MESSAGE
 

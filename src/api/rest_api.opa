@@ -109,8 +109,8 @@ module RestApi {
 
         /** Tags: a mix of folder and label operations. */
 
-        case GET    "/users/" uid=user_id "/tags/" id=string_id ("?" .*)?: Tags.get(api_version, id)                            // Get.
-        case GET    "/users/" uid=user_id "/tags" ("?" .*)?: Tags.list(api_version)                                             // List.
+        case GET    "/users/" uid=user_id "/tags/" id=string_id ("?" .*)?: Tags.get(api_version, id, false)                     // Get.
+        case GET    "/users/" uid=user_id "/tags" ("?" .*)?: Tags.list(api_version, false)                                      // List.
         case DELETE "/users/" uid=user_id "/tags/" id=string_id ("?" .*)?: Tags.delete(api_version, id)                         // Delete.
         case POST   "/users/" uid=user_id "/tags" ("?" .*)?: Tags.save(api_version, none)                                       // Create.
         case PUT    "/users/" uid=user_id "/tags/" id=string_id ("?" .*)?: Tags.save(api_version, some(id))                     // Update.
@@ -910,13 +910,10 @@ module RestApi {
         Http.Json.bad_request(msg)
     }
 
-    /** Combines the {create}, {modify} functions.
-     * TODO: implement patch semantics for updates.
-     */
-    function save(version, option(Folder.id) id) { Http.Json.not_supported(version) }
-    function delete(version, id) { Http.Json.not_supported(version) }
-    function get(version, id) { Http.Json.not_supported(version) }
-    function list(version) { Http.Json.not_supported(version) }
+    function save(version, option(Folder.id) id) { Tags.save(version, id) }
+    function delete(version, id) { Tags.delete(version, id) }
+    function get(version, id) { Tags.get(version, id, true) }
+    function list(version) { Tags.list(version, true) }
     function patch(version, id) { Http.Json.not_supported(version) }
 
   } // END FOLDERS
@@ -931,8 +928,8 @@ module RestApi {
       else response(state)
     }
 
-    function get(_version, id) { logged(Tag.Api.get(_, id)) }
-    function list(_version) { logged(Tag.Api.list) }
+    function get(_version, id, folderOnly) { logged(Tag.Api.get(_, id, folderOnly)) }
+    function list(_version, folderOnly) { logged(Tag.Api.list(_, folderOnly)) }
     function save(_version, option(string) id) {
       body = HttpRequest.get_json_body()
       match (Option.bind(OpaSerialize.Json.unserialize_unsorted, body)) {
@@ -941,7 +938,7 @@ module RestApi {
       }
     }
 
-    function delete(version, id) { Http.Json.not_supported(version) }
+    function delete(version, id) { logged(Tag.Api.delete(_, id)) }
     function patch(version, id) { Http.Json.not_supported(version) }
 
   } // END TAGS
@@ -1015,13 +1012,13 @@ module RestApi {
     /**
      * Manage user teams.
      * The request body must contain a json value with two fields:
-     *  - addedTeamKeys
-     *  - removedTeamKeys
+     *  - addTeamKeys
+     *  - removeTeamKeys
      */
     function move(_version, User.key key) {
       body = HttpRequest.get_json_body()
       match (Option.bind(OpaSerialize.Json.unserialize_unsorted, body)) {
-        case {some: ~{addedTeamKeys, removedTeamKeys}}:
+       case {some: ~{addedTeamKeys, removedTeamKeys}}:
           UserController.update_teams(key, {removed_teams: removedTeamKeys, added_teams: addedTeamKeys}) |> Http.Json.outcome
         default:
           warning("Users.move: Malformed body and/or missing fields")
