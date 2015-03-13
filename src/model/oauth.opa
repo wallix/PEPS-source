@@ -336,7 +336,8 @@ module Oauth {
 
   /**
    * Not part of OAuth protocol: generate a verified token.
-   * This token remains valid for one day.
+   * This token remains valid for one day. The consumer key and secret are optional,
+   * but should be added if the token is destined to be used by a specific consumer.
    */
   function make_verified_token() {
     oauth_token = new_token()

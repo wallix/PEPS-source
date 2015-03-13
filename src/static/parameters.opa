@@ -158,7 +158,7 @@ module AppParameters {
   /** Export app configuration. */
   function config(string name, string provider, string consumer_key, string consumer_secret, int port) {
     File.mkdir("/etc/peps/apps") |> ignore
-    dirok = File.mkdir("/etc/peps/apps/{name}")
+    dirok = File.exists("/etc/peps/apps/{name}") || File.mkdir("/etc/peps/apps/{name}")
     if (dirok) {
       File.write("/etc/peps/apps/{name}/provider", Binary.of_string(provider))
       File.write("/etc/peps/apps/{name}/consumer_secret", Binary.of_string(consumer_secret))

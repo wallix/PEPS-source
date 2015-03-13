@@ -402,8 +402,8 @@ module Team {
     DbSet.iterator(/webmail/teams[key in teams and (name =~ term or email.address.local =~ term)].{email}) |>
     Iter.fold(function (team, acc) {
       elt =
-        { label: Email.to_string(team.email),
-          value: Email.to_string(team.email) }
+        { id: Email.to_string_only_address(team.email),
+          text: Email.to_string(team.email) }
       [elt|acc]
     }, _, [])
   }

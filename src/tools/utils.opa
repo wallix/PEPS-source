@@ -179,9 +179,8 @@ module Utils {
   }
 
   function string_limit(limit, src) {
-    ll = String.length(src)
-    if (ll > limit)
-      "{String.sub(0, (limit-3), src)}..."
+    if (String.length(src) > limit)
+      "{String.sub(0, limit-3, src)}..."
     else src
   }
 

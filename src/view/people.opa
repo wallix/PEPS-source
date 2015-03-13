@@ -34,12 +34,12 @@ module PeopleView {
           name = Team.get_name(team) ? ""
           urn = URN.make({people: "contacts"}, ["teams", name])
           onclick = Content.update_callback(urn, _)
-          <dt><a class="name" onclick={onclick}>
+          <dt class="sidebar-menu-item"><a class="name" onclick={onclick}>
             <i class="fa fa-lg fa-contact"></i> {String.capitalize(name)}</a></dt>
         }, teams)
 
       match (view) {
-        case {icons}: <>Not implemented for icons</>
+        case {icons}: <>{ List.fold(`<+>`, list, <></>) }</>
         case {folders}:
           <>{ List.fold(`<+>`, list, <></>) }</>
         default: <>Error: view case not possible "{view}"</>

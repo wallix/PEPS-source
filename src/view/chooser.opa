@@ -107,7 +107,6 @@ module Chooser(Chooser.setup('ref, 'id, 'filter, 'item, 'custom) setup) {
    * calls to {fetch}. {fetch} IS asynchronous, and this ensures the fluidity of the scroll.
    */
   private client function void load(settings, ref) {
-    // log("load: from:{ref}")
     Dom.unbind_event(#{"{settings.id}-list"}, {scroll})           // Unbind event to avoid multiple requests.
     fetch(ref, settings)                                          // Send request for more elements.
   }
@@ -200,7 +199,7 @@ module Chooser(Chooser.setup('ref, 'id, 'filter, 'item, 'custom) setup) {
     #main =+ modal // APPPEND the modal so it appears in front of other modals (e.g. compose modals).
     initscript =
       <script id="{id}-init" type="text/javascript">
-        {Xhtml.of_string_unsafe("init_chooser('#{id}');")}
+        {Xhtml.of_string_unsafe("setDraggable('#{id}');")}
       </script>
     #{id} += initscript // NB: must be upload AFTER the modal, else the script can not be executed correctly.
     Modal.show(#{id})

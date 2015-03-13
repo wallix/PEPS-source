@@ -32,7 +32,12 @@ module AppView {
   protected function build(Login.state state, string appname, Path.t path) {
     match (App.find(appname)) {
       case {some: app}:
-        url = "{app.url}/{Path.print(path)}"
+        // Retrieve an access token to pass to the application.
+        query = match (SessionController.create()) {
+          case {some: token}: "?oauth_token={token}"
+          default: ""
+        }
+        url = "{app.url}/{Path.print(path)}{query}"
         <iframe id="app_iframe" seamless src={url} class="app-iframe" style="border-width:0px;" onready={insert_style}></iframe>
       default:
         <>{@i18n("Non-existant application")}</>

@@ -72,12 +72,17 @@ protected function main(string s) {
   )
 }
 
-// User specific auto-complete
-
-function user(string s) {
+/** Address autocompletion. */
+function addresses() {
   state = Login.get_state()
-  if (Login.is_logged(state)) Resource.raw_text(AutoComplete.json(s))
-  else Resource.raw_text("")
+  if (Login.is_logged(state))
+    match (HttpRequest.get_url()) {
+      case {some: url}:
+        term = List.assoc("q", url.query) ? ""
+        Resource.raw_text(AutoComplete.addresses(state, term))
+      default: Resource.raw_response("\{\"items\": []\}", "application/json", {success})
+    }
+  else Resource.raw_response("\{\"items\": []\}", "application/json", {success})
 }
 
 /** {1} Chunked file upload. */
@@ -234,7 +239,7 @@ dispatcher = parser {
 
     parser {
       // Special URLs
-      case       "/_user" s=(.*) : user(Text.to_string(s))
+      case       "/search/addresses" .*: addresses()
       case       "/raw" s=(.*) : FileView.download(Text.to_string(s), Notifications.build)
       case GET   "/upload" ("?" .*)?: Chunk.test()
       case POST  "/upload" ("?" .*)?: Chunk.upload()
@@ -247,11 +252,10 @@ dispatcher = parser {
 
 Resource.register_external_js("/resources/js/jquery-ui-1.9.2.custom.min.js")
 Resource.register_external_js("/resources/js/jquery.tokeninput.js")
+Resource.register_external_js("/resources/js/select2.full.js")
 Resource.register_external_js(Utils.auto_version("/resources/js/mail.js"))
 Resource.register_external_css("/resources/css/tablesorter.css")
-// TODO: remove this when switching to select2
-Resource.register_external_css("/resources/css/jquery-ui-bootstrap/jquery-ui-1.9.2.custom.css")
-Resource.register_external_js("/resources/js/bootstrap-contextmenu.js")
+Resource.register_external_css("/resources/css/select2.min.css")
 
 private server encryption =
   if (AppParameters.parameters.no_ssl) {no_encryption: void}

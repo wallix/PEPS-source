@@ -242,7 +242,7 @@ MessageController = {{
         do debug("External: {external}")
 
         message = ~{header status content owners}
-        outcome = Message.add(some(key), message, [], true, true, encryption)
+        outcome = Message.add(some(key), message, [], true, action == {send}, encryption)
         match outcome with
         | {success=(mid, encrypted)} ->
           do Notification.Broadcast.received(mid, owners)

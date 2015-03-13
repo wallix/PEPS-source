@@ -35,6 +35,32 @@ module SessionController {
   }
 
   /**
+   * Create a new session for the logged in user, and return the oauth access token
+   * generated for the session (only if the state is defined).
+   */
+  protected function option(string) create() {
+    state = Login.get_state()
+    if (Login.is_logged(state))
+      match (User.get(state.key)) {
+        case {some: user}:
+          // Try predefined sessions.
+          match (Sessions.find(user.key, user.status, false)) {
+            case {some: token}: some(token)
+            default:
+              // Create a new session.
+              token = Oauth.make_verified_token()
+              Sessions.create(
+                {key: user.key, status: user.status, username: user.username},
+                some(token), false
+              ) |> ignore
+              some(token)
+          }
+        default: none
+      }
+    else none
+  }
+
+  /**
    * Logout the active user, which effects in the asscoiated
    * session being deleted.
    */

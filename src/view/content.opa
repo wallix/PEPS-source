@@ -259,7 +259,6 @@ module Content {
 
     protected function signin(state) {
       <>
-      <h1>{Admin.get_settings().logo}</h1>
       <h3>{AppText.sign_in_to_mailbox()}</h3>
       <div id="login">
         {Login.build(state)}
@@ -268,7 +267,7 @@ module Content {
           <a onclick={function(_){ #signin_well = signup(state) }}>
             {@i18n("Don't have an account? Sign up")}
           </a>
-        } 
+        }
         else <></>
       }
       </>
@@ -284,11 +283,14 @@ module Content {
     /** Log in window, if user is not connected. */
     @expand protected function loginbox(state) {
       <div class="home-card">
-        <div class="well">
+        <div class="container">
           <div class="app-icon"></div>
-          <div id="signin_well">
-            {signin(state)}
-          </div>      
+          <h1>{Admin.logo()}</h1>
+          <div class="well">
+            <div id="signin_well">
+              {signin(state)}
+            </div>
+          </div>
         </div>
       </div>
     }
@@ -296,23 +298,25 @@ module Content {
 
     @expand protected function passwordbox(state) {
       <div class="home-card">
-        <div class="well">
+        <div class="container">
           <div class="app-icon"></div>
-          <h1>{Admin.get_settings().logo}</h1>
-          <h3>{@i18n("Setup your PEPS in two steps")}</h3>
-          <form role="form" class="form-simple">
-            <div class="form-group">
-              <label class="control-label" for="domain">{@i18n("Admin Password")}</label>
-              <input id="pass" type="password" class="form-control" placeholder="{@i18n("Password")}"/>
-            </div>
-            <div class="form-group">
-              <label class="control-label" for="domain">{@i18n("Repeat")}</label>
-              <input id="passrepeat" type="password" class="form-control" placeholder="{@i18n("Password repeat")}"/>
-            </div>
-            <div class="form-group">
-              <button type="button" class="btn btn-block btn-primary" onclick={setup_admin}>{@i18n("Next")}</button>
-            </div>
-          </form>
+          <h1>{Admin.logo()}</h1>
+          <div class="well">
+            <h3>{@i18n("Setup your PEPS in two steps")}</h3>
+            <form role="form" class="form-simple">
+              <div class="form-group">
+                <label class="control-label" for="domain">{@i18n("Admin Password")}</label>
+                <input id="pass" type="password" class="form-control" placeholder="{@i18n("Password")}"/>
+              </div>
+              <div class="form-group">
+                <label class="control-label" for="domain">{@i18n("Repeat")}</label>
+                <input id="passrepeat" type="password" class="form-control" placeholder="{@i18n("Password repeat")}"/>
+              </div>
+              <div class="form-group">
+                <button type="button" class="btn btn-block btn-primary" onclick={setup_admin}>{@i18n("Next")}</button>
+              </div>
+            </form>
+          </div>
         </div>
       </div>
     }

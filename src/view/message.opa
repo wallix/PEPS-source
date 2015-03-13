@@ -309,7 +309,7 @@ MessageView = {{
 
     /**
      * Server-side callback: if the reply was successfully sent, retrieve the
-     * message and insert it at the beginning of the current thread.
+     * message and insert it at the end of the current thread.
      */
     @private @async @publish callback(mid, res) =
       match (res) with
@@ -320,7 +320,7 @@ MessageView = {{
           folders =
             Folder.list_boxes(state.key) |>
             List.filter_map(box -> if Folder.is_system(box.id) then none else some({custom= box.id}), _)
-          message = Message.build(state.key, header, status, some(content), folders)
+          message = Message.build(state.key, header, status, some(content), false, folders)
           insert(mid, {success= (message, status.owner, encrypted)})
         | ~{failure} ->
           insert(mid, {failure= (failure, [])})
@@ -333,7 +333,7 @@ MessageView = {{
 
     @private @client @async insert(mid, res) =
       match (res) with
-      | {success= (message, user, encrypted)} ->
+      | {success= (_message, user, encrypted)} ->
         // Finish reencryption of file attachments.
         do FileView.Common.reencrypt(user, encrypted)
         // TODO: load reply into current thread.
@@ -365,7 +365,7 @@ MessageView = {{
           if (encryption) then
             // Message encryption is enforced by the chosen security label.
             // First extract the user's secret key.
-            UserView.SecretKey.prompt(key, @i18n("PEPS requires your password to encrypt this message."), secretKey ->
+            UserView.SecretKey.prompt(key, @i18n("Please enter your password to encrypt this message."), secretKey ->
               match (secretKey) with
               | {some= secretKey} ->
                 // Generate a keyPair for the message.
@@ -571,7 +571,7 @@ MessageView = {{
         messageSecretKey = Uint8Array.decodeBase64(messageSecretKey)
         keyNonce = Uint8Array.decodeBase64(keyNonce)
         // Extract the user secret key.
-        UserView.SecretKey.prompt(user, @i18n("PEPS requires your password to decrypt this message."), secretKey ->
+        UserView.SecretKey.prompt(user, @i18n("Please enter your password to decrypt this message."), secretKey ->
           match (secretKey) with
           | {some= secretKey} ->
             // Open the message secret key.
@@ -684,11 +684,11 @@ MessageView = {{
       t0 = Date.now()
       messages = MessageController.get_messages_of_thread(key, header.thread)
       t1 = Date.now()
-      current = Message.build(key, header, status, some(content), folders)
-      thread = List.fold(message, list ->
-        if (message.header.id == mid) then list <+> current
-        else list <+> Message.build(key, message.header, message.status, none, folders)
-      , messages, <></>)
+      (thread, _) = List.fold(message, (list, first) ->
+        if (message.header.id == mid)
+        then (list <+> Message.build(key, header, status, some(content), first, folders), false)
+        else (list <+> Message.build(key, message.header, message.status, none, first, folders), false)
+      , messages, (<></>, true))
       thread = <ul id="thread" data-thread="{header.thread}" class="list-unstyled" onready={_ -> Thread.goto(mid, true)}>{thread}</ul>
       t2 = Date.now()
 
@@ -729,7 +729,7 @@ MessageView = {{
               folders =
                 Folder.list_boxes(state.key) |>
                 List.filter_map(box -> if Folder.is_system(box.id) then none else some({custom= box.id}), _)
-              Message.build(state.key, header, status, none, folders)
+              Message.build(state.key, header, status, none, false, folders)
             else <></>
           insert(thread, status.mbox, snippet, message)
         | ~{failure} -> void
@@ -741,7 +741,7 @@ MessageView = {{
       // Check that neither the mode nor the thread changed in the mean.
       do if (URN.get().mode == {messages= mbox}) then
         #messages_list_items -<- snippet
-      if (cthread == thread) then #thread -<- message
+      if (cthread == thread) then #thread +<- message
 
     /**
      * Load and insert a message at the beginning of the message list (and in the opened thread
@@ -755,10 +755,12 @@ MessageView = {{
      * Build the message display. Keep server side, else all i18n calls amount to ~20 requests being sent to the server.
      * @content the message content (overrides message.content). If none, the content remains hidden until the the toggle
      *  has been hit (useful for threads).
+     *
      * @param key active user
+     * @param displayHeading hide subject and classification.
      */
     @server_private
-    build(key: User.key, header, status, content, folders) =
+    build(key: User.key, header, status, content, displayHeading:bool, folders) =
       t0 = Date.now()
       // Extract encryption parameters.
       encryption =
@@ -784,6 +786,16 @@ MessageView = {{
       is_trash = status.mbox == {trash}
 
       t1 = Date.now()
+
+      /// Message header.
+      subject = if header.subject == "" then "({@i18n("no subject")})" else header.subject
+      heading =
+        if (displayHeading) then
+          <div class="pane-heading" style="position:relative;">
+            <div class="pane-heading-label">{classification}</div>
+            <h3>{subject}</h3>
+          </div>
+        else <></>
 
       /// Profile picture of the message sender.
       thumbnail = userimg(key, header.from)
@@ -836,7 +848,7 @@ MessageView = {{
       t2 = Date.now()
 
       /// Message header.
-      // Contents: subject, sender, status line.
+      // Contents: sender, status line.
       date =
         id = Dom.fresh_id()
         <span id={id} onready={Misc.insert_date(id, header.created, "%d/%m/%y - %H:%M")} class="message_date"></span>
@@ -1005,7 +1017,6 @@ MessageView = {{
           if is_trash then <div class="message_actions">{reply <+> reply_all <+> forward <+> delete <+> move}</div>
           else             <div class="message_actions">{reply <+> reply_all <+> forward <+> move}</div>
 
-      subject = if header.subject == "" then "({@i18n("no subject")})" else header.subject
       content =
         if (content == none) then
           <div id="{mid}-content" class="message_content">
@@ -1016,10 +1027,7 @@ MessageView = {{
       // Assemble all elements.
       message =
         <li id="message_{mid}" onready={Message.initialize(header, is_sent, labels, replyto, signature, _)}>
-          <div class="pane-heading" style="position:relative;">
-            <div class="pane-heading-label">{classification}</div>
-            <h3>{subject}</h3>
-          </div>
+          {heading}
           <div class="message">
             <div class="msg-heading msg-row">
               {actions}

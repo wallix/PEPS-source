@@ -245,7 +245,7 @@ module FileView {
       // No encrypted files -> do nothing.
       if (parameters == []) void
       else
-        UserView.SecretKey.prompt(sharer, @i18n("PEPS requires your password to complete the sharing."), function {
+        UserView.SecretKey.prompt(sharer, @i18n("Please enter your password to complete sharing."), function {
           case {some: secretKey}:
             // Compute the new encryption parameters.
             parameters = List.filter_map(function (encryption) {
@@ -431,7 +431,7 @@ module FileView {
       // Client side.
       case ~{chunks, key, raw}:
         // Retrieve the user's secret key.
-        UserView.SecretKey.prompt(key, @i18n("PEPS requires your password to encrypt this file."),
+        UserView.SecretKey.prompt(key, @i18n("Please enter your password to encrypt this file."),
           function (secretKey) {
             match (secretKey) {
               case {some: secretKey}:
@@ -895,7 +895,7 @@ module FileView {
 
   /** File decryption. */
   client function decrypt(user, parameters, filename, mimetype, _evt) {
-    UserView.SecretKey.prompt(user, @i18n("PEPS requires your password to access this resource."), function {
+    UserView.SecretKey.prompt(user, @i18n("Please enter your password to access this resource."), function {
       case {some: secretKey}:
         // Some decoding.
         filePublicKey = Uint8Array.decodeBase64(parameters.filePublicKey)

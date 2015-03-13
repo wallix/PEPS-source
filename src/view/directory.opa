@@ -298,13 +298,13 @@ module DirectoryView {
         List.rev_map(function (dir) {
           urn = URN.make({files: "teams"}, [dir.id])
           onclick = Content.update_callback(urn, _)
-          <dt><a class="name" onclick={onclick}>
+          <dt class="sidebar-menu-item"><a class="name" onclick={onclick}>
             <i class="fa fa-folder-o"></i> {dir.name}</a></dt>
         }, directories)
 
       match (view) {
         case {icons}:
-          <>{@i18n("Not implemented for icons")}</>
+          <>{ List.fold(`<+>`, list, <dl></dl>) }</>
         case {folders}:
           <>
             { List.fold(`<+>`, list, <dl></dl>) }

@@ -113,11 +113,15 @@ module UserView {
       }
 
       prompt =
+        <>
         <div id="passwordnotify"/>
-        <form role="form" method="post">
-          <div>{msg}</div>
-          <input type=password id="passwordinput" placeholder="{AppText.password()}"></input>
-        </form>
+        {Form.wrapper(
+          Form.form_group(
+            <div class="form-control-static">{msg}</div>
+            <input type=password id="passwordinput" placeholder="{AppText.password()}" class="form-control"></input>
+            )
+        , true)}
+        </>
       ok = WB.Button.make({button: <>{AppText.Ok()}</>, callback: doconfirm}, [{primary}])
       cancel = WB.Button.make({button: <>{AppText.Cancel()}</>, callback: docancel}, [{`default`}])
       modal =

@@ -573,10 +573,10 @@ LabelView = {{
         Radio.list(
           if is_admin then [
             { id= "not_protected" value= "not_protected"
-              text= <span class="label label-success-inverse">{AppText.Not_Protected()}</span>
+              text= <span class="label label-success">{AppText.Not_Protected()}</span>
               checked= not_protected onclick= some(radio_onclick) },
             { id= "restricted_diffusion" value= "restricted_diffusion"
-              text= <span class="label label-danger-inverse">{@i18n("Restricted Diffusion")}</span>
+              text= <span class="label label-danger">{@i18n("Restricted Diffusion")}</span>
               checked= classified onclick= some(radio_onclick) }
           ] else [
             { id= "personal" value= "personal"

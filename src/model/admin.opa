@@ -83,9 +83,13 @@ module Admin {
     })
 
 
-  function get_settings() { settingsCache.get(void) }
-  exposed function get_domain() { get_settings().domain }
-  function only_admin_can_register() { get_settings().only_admin_can_register }
+  function settings() { settingsCache.get(void) }
+  exposed function get_domain() { settings().domain }
+  function only_admin_can_register() { settings().only_admin_can_register }
+
+  @expand function logo() { settings().logo }
+  @expand function shortLogo() { Utils.string_limit(9, settings().logo) }
+
 
   /**
    * Change the admin settings.

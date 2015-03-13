@@ -65,7 +65,7 @@ SettingsController = {{
         onboarding = onboarding
       }
       do User.add_preferences(state.key, preferences)
-      callback({success})
+      callback({success= view})
 
   @publish @async
   save_user_signature(sgn, callback) : void =

@@ -124,10 +124,10 @@ module AdminController {
     import([], [], list)
   }
 
-  protected function get_timeout() { Admin.get_settings().disconnection_timeout }
-  exposed function get_grace_period() { Admin.get_settings().disconnection_grace_period }
-  protected function get_domain_name() { Admin.get_settings().domain }
-  protected function get_logo_name() { Admin.get_settings().logo }
+  protected function get_timeout() { Admin.settings().disconnection_timeout }
+  exposed function get_grace_period() { Admin.settings().disconnection_grace_period }
+  protected function get_domain_name() { Admin.settings().domain }
+  protected function get_logo_name() { Admin.settings().logo }
 
   exposed @async function void set_settings(Admin.settings new_settings, callback) {
     state = Login.get_state()
@@ -140,7 +140,7 @@ module AdminController {
     else {
       domain = if (new_settings.domain == "") AppConfig.default_domain else new_settings.domain
       new_settings = { new_settings with ~domain }
-      old_settings = Admin.get_settings()
+      old_settings = Admin.settings()
       if (old_settings.disconnection_timeout != new_settings.disconnection_timeout)
         log("Disconnection timeout set to {new_settings.disconnection_timeout} minutes")
       if (old_settings.disconnection_grace_period != new_settings.disconnection_grace_period)

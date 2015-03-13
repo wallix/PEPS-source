@@ -98,7 +98,7 @@ AdminView = {{
         AdminController.set_settings(settings,
           // Client side.
           | {success= (timeout, grace_period, domain)} ->
-            do #topbar_logo_name <- <>{logo}</> // Update logo name.
+            do TopbarView.setLogo(logo)
             Notifications.success(
               AppText.settings(),
               <>{@i18n("Timeout {timeout} minutes, Grace period {grace_period} seconds, Domain {domain}")}</>

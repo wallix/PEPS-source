@@ -328,7 +328,8 @@ module RestApi {
           case {failure: reason}:
             warning("OAuth.request_token: failed with {reason}")
             Http.Form.error([("error",reason)])
-          case {success: data}: Http.Form.success(data)
+          case {success: data}:
+            Http.Form.success(data)
         }
       })
     }
@@ -374,7 +375,7 @@ module RestApi {
               if (oauth_callback == "oob")
                 Resource.page("",
                   <div>
-                    <h3>You are successfully logged into {Admin.get_settings().logo}</h3>
+                    <h3>You are successfully logged into {Admin.logo()}</h3>
                     <p>Your token verifier is {oauth_verifier}</p>
                   </div>
                 )
@@ -391,19 +392,21 @@ module RestApi {
       else {
         title =
           match (Oauth.get_consumer_name(oauth_token)) {
-            case {some:name}: @i18n("Sign in to {name} using {Admin.get_settings().logo}")
-            case {none}: @i18n("Sign in to {Admin.get_settings().logo}")
+            case {some:name}: @i18n("Sign in to {name} using {Admin.logo()}")
+            case {none}: @i18n("Sign in to {Admin.logo()}")
           }
         xhtml =
           <div class="home-card">
-            <div class="well">
-              <div class="app-icon"></div>
-              <h1>{Admin.get_settings().logo}</h1>
-              <h3>{AppText.sign_in_to_mailbox()}</h3>
-                <div id="login">{
-                  Login.build(state)
-                }</div>
-              {AdminView.register(state,{none})}
+            <div class="container">
+              <div class="well">
+                <div class="app-icon"></div>
+                <h1>{Admin.logo()}</h1>
+                <h3>{AppText.sign_in_to_mailbox()}</h3>
+                  <div id="login">{
+                    Login.build(state)
+                  }</div>
+                {AdminView.register(state,{none})}
+              </div>
             </div>
           </div>
         mini_styled_page(title, xhtml)
@@ -427,9 +430,10 @@ module RestApi {
     /** Access token endpoint. */
     function access_token(int version) {
       check_oauth_version("1.0", function (params) {
-        log("OAuth.access_token")
         match (OauthController.access_token(params)) {
-          case {failure: reason}: Http.Form.success([("error", reason)])
+          case {failure: reason}:
+            warning("OAuth.access_token: failed with {reason}")
+            Http.Form.success([("error", reason)])
           case {success: data}:
             request_token = List.assoc("oauth_token", params)
             access_token = List.assoc("oauth_token", data)

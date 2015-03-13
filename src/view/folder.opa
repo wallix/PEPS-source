@@ -213,7 +213,7 @@ module FolderView {
           path: []
         }
         onclick = Content.update_callback(urn, _)
-        <dt><a class="name" onclick={onclick}>
+        <dt class="sidebar-menu-item"><a class="name" onclick={onclick}>
           <i class="fa fa-lg fa-folder-o"></i> {folder.name}
           <div id="{folder.id}_badge" class="badge_holder"/>
         </a></dt> <+> acc
@@ -223,10 +223,7 @@ module FolderView {
         case {icons}:
           if (list == []) <></>
           else
-            <span class="dropdown-toggle" data-toggle="dropdown">
-              <span class="fa fa-2x fa-folder-o" title="Folders" data-placement="right" rel="tooltip"></span>
-            </span>
-            <ul class="dropdown-menu">{xlist}</ul>
+            <dl class="folders-menu">{xlist}</dl>
         case {folders}:
           xlist
         default:

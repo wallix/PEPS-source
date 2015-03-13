@@ -222,8 +222,8 @@ module Contact {
       List.map(function (item) {
         name = if (item.name == "") none else some(item.name)
         email = Email.to_string({name: name, address: item.email})
-        { label: email,
-          value: email }
+        { id: Email.address_to_string(item.email),
+          text: email }
       }, _)
     sorted
   }

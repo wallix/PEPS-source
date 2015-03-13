@@ -226,9 +226,12 @@ SettingsView = {{
   save_preferences_callback(state, view, res) =
     do Button.reset(#save_preferences_button)
     match res
-    | {success} ->
+    | {success= view} ->
       urn = URN.get()
       do SidebarView.refresh(state, urn)
+      do if (view == {icons})
+      then Dom.remove_class(#main, "narrow")
+      else Dom.add_class(#main, "narrow")
       Notifications.info(AppText.Display(), <>{@i18n("Preferences saved")}</>)
     | {failure=s} -> Notifications.error(AppText.Display(), <>{s}</>)
 
@@ -293,7 +296,7 @@ SettingsView = {{
                     <input type="checkbox" id=#search_includes_send checked="checked"/>
                   else
                     <input type="checkbox" id=#search_includes_send/>
-                } {if sis then @i18n("Includes Sent") else @i18n("Does not include Sent")}
+                } {if sis then @i18n("Include Sent") else @i18n("Do not include Sent")}
               </label>
             </div>
           </div>

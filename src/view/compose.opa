@@ -112,7 +112,7 @@ ComposeView = {{
   @client insert(id, mid, modal) =
     initscript =
       <script id="{id}-init" type="text/javascript">
-        {Xhtml.of_string_unsafe("init_compose('#{id}');")}
+        {Xhtml.of_string_unsafe("setDraggable('#{id}');")}
       </script>
     do #main -<- modal // PREPEND the modal so it appears behind other modals (e.g. file chooser).
     do #{id} +<- initscript // NB: must be upload AFTER the modal, else the script can not be executed correctly.
@@ -125,137 +125,62 @@ ComposeView = {{
 
   Recipient = {{
 
-    /** Remove a recipient. Triggered by clicking on the 'close' icon in recipients label. */
-    @private @client remove(id: string, eltid: string, _evt) =
-      do Dom.remove(#{eltid})
-      adjust_input_width(id)
+    /**
+     * Initialize select2 component.
+     * @param id dom identifier if the select2 component.
+     * @param selection initial address selection.
+     */
+    @client init(id: string, selection, _evt) =
+      selection = List.map(
+        | ~{unspecified} -> {id= unspecified text= unspecified}
+        | {external= email}
+        | {internal= ~{email ...}} ->
+          { id= Email.address_to_string(email.address)
+            text= Email.address_to_string(email.address) },
+        selection
+      )
+      // Add initial selection.
+      do List.iter(item ->
+        #{id} +<- <option value="{item.id}">{item.text}</option>
+      , selection)
+      // Initialize select2.
+      do Select2.init(#{id}, {
+        Select2.defaults with
+        multiple= true
+        tags= true
+        tokenSeparators= [",", " "]
+        placeholder= {string= "Recipients"}
+        data= {ajax = {
+          url= "/search/addresses"
+          cache= false
+          delay= 250
+          minimumInputLength= 1
+        }}
+        templateSelection= some(template)
+      })
+      // Set initial selection.
+      Select2.setSelection(#{id}, selection)
 
-    /** Remove the last recipient of the given containr. Triggered by backspace in an empty textarea. */
-    @private @client remove_last(id: string) =
-      last =
-        Dom.select_inside(#{"{id}-list"}, Dom.select_class("recipient")) |>
-        Dom.select_last_one
-      do Dom.remove(last)
-      adjust_input_width(id)
-
-    /** Parse a recipient list. */
-    @client parse(id: string, input: string) =
-      String.explode(",", input) |>
-      List.map(String.trim, _) |>
-      List.fold(input, acc ->
-        if input == "" then acc
-        else
-          match (MessageController.identify(input)) with
-            | {unspecified=addr} -> acc <+> recipient(id, addr, addr, input, false)
-            | {external=email} -> acc <+> recipient(id, Email.to_name(email), Email.address_to_string(email.address), input, false)
-            | {internal=~{email team ...}} -> acc <+> recipient(id, Email.to_name(email), Email.address_to_string(email.address), input, team)
-          end, _, <></>)
-
-    /** Build a recipient encapsluated in a label, that can be removed easily. */
-    @private @both recipient(id: string, name: string, address: string, email: string, team: bool) =
-      eltid = Dom.fresh_id()
-      labelclass =
-        if (team) then ["label", "label-team"]
-        else ["label", "label-recipient"]
-      <div id={eltid} data-name={name} class="recipient pull-left">
-        <span title={address} rel="tooltip" data-placement="bottom" class={labelclass}>
-          {name}
-          <a onclick={remove(id, eltid, _)} class="fa fa-times" title={AppText.remove()}></a>
-        </span>
-        <input id="email" type="hidden" value={email}/>
-      </div>
-
-    @private @both recipient_of_addr(id: string, addr) =
-      team = false
-      match (addr) with
-        | {internal= ~{email key team}}
-        | {external= email} ->
-          name = Email.to_name(email)
-          address = Email.address_to_string(email.address)
-          email = Email.to_string(email)
-          recipient(id, name, address, email, team)
-        | {unspecified= email} ->
-          recipient(id, email, email, email, team)
+    /** Format a recipient selection. */
+    @private template(item) =
+      recipient(name, address, team) =
+        labelclass =
+          if (team) then ["label", "label-team"]
+          else ["label", "label-recipient"]
+        <div data-name={name} class="recipient pull-left">
+          <span title={address} rel="tooltip" data-placement="bottom" class={labelclass}>
+            {name}
+          </span>
+          <input id="email" type="hidden" value={item.text}/>
+        </div>
+      match (MessageController.identify(item.text)) with
+      | {unspecified=addr} -> recipient(addr, addr, false)
+      | {external=email} -> recipient(Email.to_name(email), Email.address_to_string(email.address), false)
+      | {internal=~{email team ...}} -> recipient(Email.to_name(email), Email.address_to_string(email.address), team)
       end
 
-    /**
-     * Adjust the width of the input element, depending on the recipients already entered,
-     * and the value of the input.
-     */
-    @private @client adjust_input_width(id: string) =
-      listid = "{id}-list"
-      inputid = "{id}-input"
-
-      recipients = Dom.select_inside(#{listid}, Dom.select_class("recipient"))
-      divwidth = Dom.get_inner_width(#{"{id}-inner"})
-      do log("Div width: {divwidth}")
-      do log("Selected recipients: {Dom.length(recipients)}")
-      // Compute cumulated width of last line of recipients.
-      linewidth = Dom.fold(recipient, width ->
-        rwidth = Dom.get_width(recipient)
-        if (width+rwidth > divwidth) then
-          do log("New line ({width})")
-          rwidth
-        else width+rwidth
-      , 0, recipients)
-      do log("Last line: {linewidth}")
-      width =
-        if (divwidth-linewidth < 30) then divwidth
-        else divwidth-linewidth-5
-      do log("Adjusted width: {width}")
-      Dom.set_width(#{inputid}, width)
-      // Dom.set_attribute_unsafe(#{inputid}, "style", "width: {width}px")
-
-
-    /**
-     * Convert the input in a textarea, and add it to the list of recipients.
-     * @param listid the id of the recipients' container.
-     */
-    @private @client add(id: string, value: string) =
-      _ = Dom.put_before(#{"{id}-input"}, Dom.of_xhtml(parse(id, value)))
-      adjust_input_width(id)
-
-    /**
-     * Set the list if recipients.
-     * @param recipients addresses in the type {Mail.address}
-     */
-    // set_recipients(id: string, recipients) =
-    //   do Dom.clear_value(#{"{id}-input"})
-    //   recipients = List.fold(recipient, acc -> acc <+> recipient_of_addr(id, recipient), recipients, <></>)
-    //   do #{"{id}-list"} +<- recipients
-    //   adjust_input_width(id)
-
-
-    /** Manage changes to the recipient list. */
-    @private @client input(id: string, evt) =
-      inputid = "{id}-input"
-      value = Dom.get_value(#{inputid}) |> String.trim
-      match (evt.key_code) with
-        // Backspace.
-        | {some= 8} ->
-          if (value == "" && evt.kind == {keydown}) then remove_last(id)
-        // Comma and Newline.
-        | {some= 188}
-        | {some= 13} ->
-          if (value != "" && evt.kind == {keyup}) then
-            do Dom.set_value(#{inputid}, "")
-            add(id, value)
-        | _ -> void
-      end
-
-    /**
-     * Build a recipient box. The used dom identifiers are:
-     *  - {id}-recipient-box for the topmost container
-     *  - {id}-list for the labels' list
-     *  - {id}-input for the input element
-     *
-     * @param init list of initial recipients.
-     */
-    box(id: string, name: string, init, ccbcc: bool, ccid: string, bccid: string) =
-      listid = "{id}-list"
-      inputid = "{id}-input"
-      // Compute the list of initial recipients.
-      init = List.fold(addr, acc -> acc <+> recipient_of_addr(id, addr), init, <></>)
+    /** Build a recipient box encapsulating a select2 component. */
+    box(id: string, name: string, selection, ccbcc: bool, ccid: string, bccid: string) =
       toggle =
         if (ccbcc) then
           <label class="control-label" onclick={toggle_id(#{ccid})}>{AppText.Cc()}</label>
@@ -264,15 +189,9 @@ ComposeView = {{
       style = if (ccbcc) then "" else "display:none;"
       <div id="{id}-recipient-box" class="form-group" style="{style}">
         <div class="frow">
-          <label class="control-label fcol" for={inputid}>{name}:</label>
+          <label class="control-label fcol">{name}:</label>
           <div id="{id}-inner" class="fcol fcol-lg">
-            <div class="recipients-list pull-left" id={listid}>
-              {init}
-              <input id={inputid} rows="1" class="recipients-field form-control pull-left [addresses]"
-                spellcheck="false" autocomplete="off"
-                onkeydown={input(id, _)}
-                onkeyup={input(id, _)}/>
-            </div>
+            <select id="{id}" onready={init(id, selection, _)} class="pull-left" style="width:100%;"/>
           </div>
           <div class="fcol">
             <div class="fcol-right">
@@ -282,25 +201,9 @@ ComposeView = {{
         </div>
       </div>
 
-    /** Extract the list of recipients of a box. */
+    /** Extract the recipient selection. */
     @client get(id: string) =
-      // From the list of recipients.
-      recipients =
-        Dom.select_id("{id}-list") |>
-        Dom.select_children |>
-        Dom.select_inside(_, Dom.select_id("email"))
-      emails = Dom.fold(dom, acc -> [Dom.get_value(dom)|acc], [], recipients)
-      // Additional recipients from the input.
-      Dom.get_value(#{"{id}-input"}) |>
-      String.explode(",", _) |> List.map(String.trim, _) |>
-      List.fold(value, acc ->
-        if value == "" then acc
-        else [value|acc], _, emails)
-
-    /** Clear the recipients list and input of a box. */
-    clear(id: string) =
-      do Dom.clear_value(#{"{id}-input"})
-      #{"{id}-list"} <- <></>
+      Select2.getSelection(#{id})
 
   }}
 
@@ -414,7 +317,7 @@ ComposeView = {{
       if (encryption) then
         // Message encryption is enforced by the chosen security label.
         // First extract the user's secret key.
-        UserView.SecretKey.prompt(key, @i18n("PEPS requires your password to encrypt this message."), secretKey ->
+        UserView.SecretKey.prompt(key, @i18n("Please enter your password to encrypt this message."), secretKey ->
           match (secretKey) with
           | {some= secretKey} ->
             // Generate a keyPair for the message.

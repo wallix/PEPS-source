@@ -80,7 +80,7 @@ module SidebarView {
   private function action_button(options, text, action, id) {
     link = match (options.view) {
       case {icons}:
-        <a class="fa fa-2x fa-plus-circle" title="{text}"
+        <a class="fa fa-plus-circle-o" title="{text}"
             onclick={action}
             data-placement="right" rel="tooltip"/>
       case {folders}:

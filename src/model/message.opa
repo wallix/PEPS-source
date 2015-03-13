@@ -1030,12 +1030,12 @@ module Message {
     // Fetch statuses.
     statuses = DbSet.iterator(/webmail/messages/status[
       thread == id and (owner == key or (owner == User.dummy and owners[_] in teams)) and
-      lock == false and (creator == key or (security in readable)) and not(mbox.deleted exists); order -created
+      lock == false and (creator == key or (security in readable)) and not(mbox.deleted exists); order +created
     ]) |> compress(key, _) |> Iter.to_list
     // Fetch associated headers.
     mids = List.map(_.id, statuses)
     headers = DbSet.iterator(/webmail/messages/header[
-      id in mids; order -created
+      id in mids; order +created
     ]) |> Iter.to_list
     // Join results.
     List.map2(function (status, header) { ~{status, header} }, statuses, headers)

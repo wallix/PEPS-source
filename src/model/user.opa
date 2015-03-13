@@ -885,8 +885,8 @@ module User {
     Iter.fold(function (user, acc) {
       name = some("{user.first_name} {user.last_name}")
       elt =
-        { label: Email.to_string({user.email with ~name}),
-          value: Email.to_string(user.email) }
+        { id: Email.to_string_only_address(user.email),
+          text: Email.to_string({user.email with ~name}) }
       [elt|acc]
     }, _, [])
   }

@@ -205,9 +205,9 @@ module Dashboard {
       <li class="list-group-item dashboard-entry entry-{class}">
         <i class="fa fa-{icon} pull-left"/>
         <div class="dashboard-content">
-          <span class="pull-left label label-{labelclass}">{n} {verb} {term}{plural}</span>
+          <span class="pull-left dashboard-section">{verb} {term}{plural} ({n})</span>
           <div class="dashboard-inner">
-            <span class="dashboard-section">{key}: </span>
+            <span class="label label-{labelclass}">{key}</span>
             <span class="dashboard-title">{String.concat(", ", elts)}</span>
           </div>
         </div>
@@ -221,16 +221,16 @@ module Dashboard {
     summary = flush_files(summary)
     rendered =
       StringMap.fold(function (key, elts, list) {
-        list <+> render_generic("new", "team", "team", "users-o", "danger-inverse", Team.get_name, key, elts)
+        list <+> render_generic("New", "team", "team", "users", "danger", Team.get_name, key, elts)
       }, summary.addteam, <></>) |>
       StringMap.fold(function (key, elts, list) {
-        list <+> render_generic("deleted", "team", "team", "users-o", "danger-inverse", Team.get_name, key, elts)
+        list <+> render_generic("Deleted", "team", "team", "users", "danger", Team.get_name, key, elts)
       }, summary.delteam, _) |>
       StringMap.fold(function (key, elts, list) {
-        list <+> render_generic("new", "user", "user", "user-o", "danger-inverse", User.get_name, key, elts)
+        list <+> render_generic("New", "user", "user", "users", "warning", User.get_name, key, elts)
       }, summary.adduser, _) |>
       StringMap.fold(function (key, elts, list) {
-        list <+> render_generic("left", "user", "user", "user-o", "danger-inverse", User.get_name, key, elts)
+        list <+> render_generic("Removed", "user", "user", "users", "warning", User.get_name, key, elts)
       }, summary.deluser, _)
     // Return the updated summary.
     if (not(summary.suffixDone))
@@ -255,9 +255,9 @@ module Dashboard {
     else {
       n = summary.files.count
       label = match (summary.files.evt) {
-        case {new}: if (n > 1) @i18n("{n} new files") else @i18n("New file")
-        case {delete}: if (n > 1) @i18n("{n} deleted files") else @i18n("File deleted")
-        default: if (n > 1) @i18n("{n} updated files") else @i18n("File updated")
+        case {new}: if (n > 1) @i18n("New files ({n})") else @i18n("New file")
+        case {delete}: if (n > 1) @i18n("Deleted files ({n})") else @i18n("Deleted file")
+        default: if (n > 1) @i18n("Updated files ({n})") else @i18n("Updated file")
       }
       list = List.intersperse(<>, </>, summary.files.files)
       id = Dom.fresh_id()
@@ -265,9 +265,9 @@ module Dashboard {
       info = <small class="msg-date pull-right">{date}</small>
       entry =
         <li class="list-group-item dashboard-entry entry-file">
-          <i class="fa fa-file-o pull-left"/>{info}
+          <i class="fa fa-files pull-left"/>{info}
           <div class="dashboard-content">
-            <span class="pull-left label label-success-inverse">{label}</span>
+            <span class="pull-left dashboard-section">{label}</span>
             <div class="dashboard-inner">{list}</div>
           </div>
         </li>
@@ -388,18 +388,18 @@ module Dashboard {
           from = match (from) {
             case {internal: ~{email ...}}
             case {external: email}:
-              <span class="pull-left label label-info-inverse" title="{Email.address_to_string(email.address)}" rel="tooltip">
+              <span class="pull-left dashboard-section" title="{Email.address_to_string(email.address)}" rel="tooltip">
                 {Email.to_name(email)}</span>
-            case {unspecified: email} -> <span class="label label-info-inverse">{email}</span>
+            case {unspecified: email} -> <span class="dashboard-section">{email}</span>
           }
           ( <>{info}
             <div class="dashboard-content">
               {from}
               <div class="dashboard-inner">
                 <span class="dashboard-title">{subject}</span>
-                <span class="dashboard-descr">{snippet} <a href="/inbox/{message}">View more</a></span>
+                <span class="dashboard-descr">- {snippet} <a href="/inbox/{message}">View more</a></span>
               </div>
-            </div></>, "message", "envelope-o" )
+            </div></>, "message", "envelope" )
         // Other.
         case ~{evt, dir}:
           ( <>{entry.event}</>, "default", "default" )
