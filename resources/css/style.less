@@ -101,7 +101,7 @@
 
 // Pane width
 @menu-width-narrow:             68px;
-@menu-width:                    160px;
+@menu-width:                    176px;
 @pane-left-width:               270px;
 @gutter:                        3px;
 @notification-static-height:    100px;
@@ -324,9 +324,9 @@ pre {
 
 // App icon
 .app-icon {
-  .img-retina(@app-icon1x; @app-icon2x; 128px; 128px;);
-  width:128px;
-  height:128px;
+  .img-retina(@app-icon1x; @app-icon2x; 80px; 80px;);
+  width:80px;
+  height:80px;
 }
 
 // Caret
@@ -904,7 +904,6 @@ form:not(.form-horizontal) {
   border-color: @brand-blue-bg;
 }
 
-
 // Badge
 // --------------------------------------------------
 .badge, .badge-info, a.list-group-item.active>.badge {
@@ -1388,15 +1387,15 @@ a.list-group-item {
   background: @sidebar-bg;
 
   .sidebar-btn {
-    position: fixed;
-    top: @navbar-height;
+    position: absolute;
+    top: 0;
     left: 0;
-    width: @menu-width;
+    width:100%;
     display: block;
     border-right: @border;
       .btn {
         display: block;
-        margin: 9px 12px;
+        margin: 9px 10px;
       }
   }
   > dl {top:0;}
@@ -1414,18 +1413,17 @@ a.list-group-item {
       width:@menu-width-narrow;
     }
     &.folders_view {
-      width:@menu-width;
+      width:100%;
     }
     a {color: @text-color;}
     >dt >a {
-      font-size:13px;
-      text-transform: capitalize;
+      font-size:12px;
       line-height: 20px;
       font-weight: 400;
       display:block;
       padding: 6px;
       position: relative;
-      &:hover, &:active {
+      &:hover, &:active, &:focus, &:visited {
         text-decoration: none;
       }
       a:hover {
@@ -1445,6 +1443,7 @@ a.list-group-item {
         text-decoration: none;
         background-color:rgba(0,0,0,0.04);
         position: relative;
+        text-decoration: none;
         &:after {
           position: absolute;
           content: "";
@@ -1487,16 +1486,24 @@ a.list-group-item {
       }
     }
     .fa {
-      margin: 0 6px;
+      margin: 0 4px;
       font-size: 24px;
       line-height: 16px;
     }
     .badge_holder {
       top: 7px;
-      right: 10px;
+      right: 8px;
+      .badge {
+        color:@white;
+        background-color: @gray;
+      }
     }
     .progress_bar {
       width: (@menu-width - 20px);
+    }
+    .sidebar-menu-item-text {
+      width: 104px;
+      .ellipsis;
     }
   }
   // Icons View
@@ -2288,7 +2295,7 @@ form .pane-heading {
 }
 
 // File attached general UI
-.file-attached {
+.file-item {
   display: inline-block;
   position: relative;
   color: @gray;
@@ -2314,7 +2321,7 @@ form .pane-heading {
       color: @gray;
     }
   }
-  .file-attached-content {
+  .file-item-content {
     font-size: 11px;
     line-height: 1.1em;
   }
@@ -2326,7 +2333,7 @@ form .pane-heading {
 // Compose Modal attachments
 .files {
   display: block;
-  .file-attached {
+  .file-item {
     width: 280px;
     height: 32px;
     margin: 5px 4px 5px 0;
@@ -2347,7 +2354,7 @@ form .pane-heading {
       margin-top: 0 !important;
       z-index:100;
     }
-    .file-attached-content {
+    .file-item-content {
       position: relative;
       display:inline-block;
       padding: 3px 5px 4px;
@@ -2369,7 +2376,7 @@ form .pane-heading {
   h6 {
     margin-top: 0;
   }
-  .file-attached {
+  .file-item {
     width: 100px;
     height: 100px;
     margin-right: 15px;
@@ -2394,7 +2401,7 @@ form .pane-heading {
         width: 100px;
         height: 100px;
       }
-      .file-attached-content {
+      .file-item-content {
         display: none;
       }
       &:hover {
@@ -2408,12 +2415,12 @@ form .pane-heading {
           height: 100px;
           background-color: rgba(34, 146, 255, 0.8);
         }
-        .file-attached-content {
+        .file-item-content {
           display: block;
         }
       }
     }
-    .file-attached-content, .file_action, .file-icon {
+    .file-item-content, .file_action, .file-icon {
       position: absolute;
       left:5px;
       right:5px;
@@ -2423,7 +2430,7 @@ form .pane-heading {
       top: 5px;
       height: 32px;
     }
-    .file-attached-content {
+    .file-item-content {
       top:45px;
       height:55px;
       overflow: hidden;
@@ -2431,7 +2438,7 @@ form .pane-heading {
     &:hover {
       background-color: rgba(34, 146, 255, 0.8);
       color:@white;
-      .file-attached-content {display: block;}
+      .file-item-content {display: block;}
       .fa {
         color:@white;
       }
@@ -2439,6 +2446,34 @@ form .pane-heading {
   }
   &:after{
     .clearfix;
+  }
+}
+
+// Versions
+.file-versions {
+  .file-item {
+    display: block;
+    clear:both;
+    .file-thumbnail {margin-right: 8px;}
+    .file-item-content {
+      width:50%;
+      font-size: 12px;
+    }
+    .file-item-right {
+      vertical-align: middle;
+      padding: 6px 24px 0 0;
+      position: relative;
+      .upload-date {color:@gray;}
+      .file_action {
+        position: absolute;
+        right:0;
+      }
+    }
+    
+  }
+  
+  .published-version {
+    background-color: @brand-primary-hover;
   }
 }
 
@@ -2531,11 +2566,8 @@ form .pane-heading {
         }
       }
     }
-
-    .treeview {
-      .list-group {
-        margin-bottom: 0;
-      }
+    .list-group {
+      margin-bottom: 0;
     }
   }
   .modal-footer {
@@ -2829,7 +2861,7 @@ form .pane-heading {
   .table {
     td {
       &:first-child {width:40%;}
-      .fa {color:@gray;}
+      .fa:not(.fa-chevron-down) {color:@gray;}
       .link_remove .fa {vertical-align: -20%;}
     }
   }
