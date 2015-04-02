@@ -89,7 +89,38 @@ module App {
   /** Fetch an app identified by its consumer key. */
   function get(string oauth_consumer_key) { ?/webmail/apps[~{oauth_consumer_key}] }
 
-  /**  Delete an application. */
+  /** Delete an application. */
   function delete(string oauth_consumer_key) { Db.remove(@/webmail/apps[~{oauth_consumer_key}]) }
+
+  /** Export app configuration to /etc/peps directory. */
+  function init() {
+    App.list() |>
+    List.iter(function (app) {
+      config({success: app}, ignore)
+    }, _)
+  }
+
+  /** Export app configuration (consumer secret) to the shared path /etc/peps/apps. */
+  function config(result, callback) {
+    match (result) {
+      case {success: app}:
+        port = Parser.parse(parser {
+          case "http" ("s")? "://" (!":" .)* ":" port=Rule.integer .*: port
+          case "http://" .*: 8080
+          case "https://" .*: 4443
+          case .*: 8080
+        }, app.url)
+        serverport = AppParameters.parameters.http_server_port ? AppConfig.http_server_port
+        provider = "{Admin.get_domain()}:{serverport}"
+        AppParameters.config(
+          app.name, provider,
+          app.oauth_consumer_key,
+          app.oauth_consumer_secret,
+          port
+        )
+      default: void
+    }
+    callback(result)
+  }
 
 } // END APP

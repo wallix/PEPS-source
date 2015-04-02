@@ -392,10 +392,11 @@ module SmtpController {
             case {success: (mid, _encrypted)}:
               Notification.Broadcast.received(mid, message.owners)
               // Add journal entries.
-              Journal.Main.log(
-                message.header.creator, message.owners,
+              Journal.Main.logDated(
+                message.header.creator, Message.Address.keys(message.header.to ++ message.header.cc ++ message.header.bcc),
                 { message: mid, snippet: message.header.snippet,
-                  subject: message.header.subject, from: message.header.from }) |> ignore
+                  subject: message.header.subject, from: message.header.from },
+                message.header.created) |> ignore
               Journal.Message.log_send(message, false) |> ignore
             default: void
           })

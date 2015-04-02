@@ -121,13 +121,13 @@ module Label {
 
     private function unprotected_classification(bool internet) {[
       ("X-XIMF-Security-Classification-Identifier", "1"),
-      ("X-XIMF-Security-Classification", @i18n("NON PROTEGE"))] ++
-      (if (internet) [("X-XIMF-Security-Categories", @i18n("DIFFUSABLE PAR INTERNET"))] else [])
+      ("X-XIMF-Security-Classification", @intl("NON PROTEGE"))] ++
+      (if (internet) [("X-XIMF-Security-Categories", @intl("DIFFUSABLE PAR INTERNET"))] else [])
     }
 
     private function classified_classification(name) {[
       ("X-XIMF-Security-Classification-Identifier", "2"),
-      ("X-XIMF-Security-Classification", @i18n("DIFFUSION RESTREINTE")),
+      ("X-XIMF-Security-Classification", @intl("DIFFUSION RESTREINTE")),
       ("X-XIMF-Security-Categories", name)
     ]}
 
@@ -192,7 +192,7 @@ module Label {
    *    - name:encrypted, ID:5, category:{classified: {encrypt:true ...}}
    */
   private function system(string name, int id, Label.category category) {
-    label = Label.make("SYSTEM", name, @i18n("{name} label, automatically generated"), category)
+    label = Label.make("SYSTEM", name, @intl("{name} label, automatically generated"), category)
     ~{label with id}
   }
 
@@ -701,7 +701,7 @@ module Label {
 
   exposed function category_to_descr(label) {
     function no_description_if_empty(descr) {
-      if (descr == "") "[{@i18n("No description")}]" else descr
+      if (descr == "") "[{@intl("No description")}]" else descr
     }
     match (label.category) {
       case { personal }: no_description_if_empty(label.description)

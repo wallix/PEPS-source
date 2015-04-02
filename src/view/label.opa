@@ -31,9 +31,8 @@ LabelView = {{
   /**
    * {2} Label selectors.
    *
-   * The selector is a clickable label whose action
-   * prompts a label chooser for classes. The result of the selection
-   * is put the title of the selector.
+   * The selector is a clickable label whose action prompts a label chooser for classes.
+   * The result of the selection is put the title of the selector.
    */
 
   /** {3} Class selector. */
@@ -44,17 +43,18 @@ LabelView = {{
       Log.notice("[Class.voidaction]", "action triggered id={id} domid={domid}")
 
     /** Select a specific class. */
-    @private @client select(id, label, _evt) =
+    @private @client select(id, label, onchange: ('a -> void), _evt) =
       callback = { onclick= voidaction title= AppText.select() icon= "chevron-down" }
       do Dom.set_attribute_unsafe(#{id}, "title", label.name)
+      do onchange(label.id) // Call the change listener.
       #{id} <- LabelView.make_label(label, some(callback))
 
     /** Build the dropdown menu. */
-    @private @server_private dropdown(id, labels) =
+    @private @server_private dropdown(id, labels, onchange) =
       list = List.fold(label, list ->
         clabel = Label.full_to_client(label)
         vlabel = LabelView.make_label(clabel, none)
-        list <+> <li onclick={select(id, clabel, _)}>{vlabel}</li>
+        list <+> <li onclick={select(id, clabel, onchange, _)}>{vlabel}</li>
       , labels, <></>)
       <ul id="{id}-dropdown" class="modal-dropdown dropdown-menu">{list}</ul>
 
@@ -62,13 +62,14 @@ LabelView = {{
      * Class selector, appearing as a dropdown menu.
      * @param label default classification.
      * @param key active user.
+     * @param onchange a change listener.
      */
-    @server_private selector(id, key, label) =
+    @server_private selector(id, key, label, onchange) =
       clabel = Label.to_client(label)
       callback = { onclick= voidaction title= AppText.select() icon= "chevron-down" }
       // Fetch usable labels.
       usable = Label.Sem.usable_labels(key, {class})
-      dropdown = dropdown(id, usable)
+      dropdown = dropdown(id, usable, onchange)
       <div class="dropdown">
         <div id={id} data-toggle="dropdown"
             onclick={_evt -> Misc.reposition(id, "{id}-dropdown")}
@@ -247,7 +248,7 @@ LabelView = {{
         { success= {classified=~{level; teams=restriction.teams; encrypt}} }
       | _ -> { success={classified=~{level; teams=[]; encrypt}} }
       end
-    | _ -> {failure=@i18n("Please choose a label")}
+    | _ -> {failure=@intl("Please choose a label")}
 
   @server_private label_tabs(admin) =
     <div class="pane-heading">
@@ -336,14 +337,14 @@ LabelView = {{
   @publish @async create(admin, _evt: Dom.event) =
     state = Login.get_state()
     if not(Login.is_logged(state)) then
-      Notifications.error(@i18n("Label creation"), Content.login_please)
+      Notifications.error(@intl("Label creation"), Content.login_please)
     else
       html = editor(state, none, admin)
       #label_viewer <- html
 
   /** Delete the selected label. */
   @client delete(id: Label.id, admin, _evt) =
-    if Client.confirm(@i18n("Are you sure you want to delete this label?")) then
+    if Client.confirm(@intl("Are you sure you want to delete this label?")) then
       LabelController.Async.delete(id,
         // Callback is client-side.
         | {success} ->
@@ -393,7 +394,7 @@ LabelView = {{
     match label.category with
     | {classified= restriction} ->
       if List.mem([team], restriction.teams)
-        // && Client.confirm(@i18n("Remove team {team.name} from label '{label.name}'?"))
+        // && Client.confirm(@intl("Remove team {team.name} from label '{label.name}'?"))
       then
         // If team name is unknown: Team.get_name(d) == {none}, the team gets removed anyway.
         teams = List.filter((d -> d != [team]), restriction.teams)
@@ -434,7 +435,7 @@ LabelView = {{
         (action, [])
       end
     TeamChooser.create({
-      title= @i18n("Add team to {label.name}")
+      title= @intl("Add team to {label.name}")
       excluded= excluded user = none action= action
     })
 
@@ -522,7 +523,7 @@ LabelView = {{
       if not(is_admin) then <></>
       else
         Form.line({Form.Default.line with
-          label= @i18n("Minimum level"); id= "label_level";
+          label= @intl("Minimum level"); id= "label_level";
           typ= "number"; value= level;
           display= classified;
         })
@@ -547,7 +548,7 @@ LabelView = {{
       match Option.map(_.category, label) with
       | {some={internal}} -> <></>
       | _ ->  WB.Button.make({
-              button=<>{@i18n("Save changes")}</>
+              button=<>{@intl("Save changes")}</>
               callback=dosave}, [{primary}])
       end
     delete =
@@ -576,7 +577,7 @@ LabelView = {{
               text= <span class="label label-success">{AppText.Not_Protected()}</span>
               checked= not_protected onclick= some(radio_onclick) },
             { id= "restricted_diffusion" value= "restricted_diffusion"
-              text= <span class="label label-danger">{@i18n("Restricted Diffusion")}</span>
+              text= <span class="label label-danger">{@intl("Restricted Diffusion")}</span>
               checked= classified onclick= some(radio_onclick) }
           ] else [
             { id= "personal" value= "personal"

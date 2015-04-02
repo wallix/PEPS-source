@@ -59,6 +59,7 @@ SettingsController = {{
     else
       preferences = {
         view = view
+        locale = Intl.locale()
         notifications = notifications
         search_includes_send = search_includes_send
         topbar = [] // FIXME
@@ -66,6 +67,12 @@ SettingsController = {{
       }
       do User.add_preferences(state.key, preferences)
       callback({success= view})
+
+  @publish @async
+  setLocale(locale: Intl.locale): void =
+    state = Login.get_state()
+    if not(Login.is_logged(state)) then void
+    else User.setLocale(state.key, locale)
 
   @publish @async
   save_user_signature(sgn, callback) : void =

@@ -41,7 +41,7 @@ module SearchController {
     else
       match (AppConfig.search_type) {
         case {solr}: callback(Search.File.search(state.key, query))
-        case {mongo}: callback({failure: @i18n("No mongo file search implemented")})
+        case {mongo}: callback({failure: @intl("No mongo file search implemented")})
       }
   }
 
@@ -52,7 +52,7 @@ module SearchController {
     else
       match (AppConfig.search_type) {
         case {solr}: callback(Search.User.search(query))
-        case {mongo}: callback({failure: @i18n("No mongo user search implemented")})
+        case {mongo}: callback({failure: @intl("No mongo user search implemented")})
       }
   }
 
@@ -63,7 +63,7 @@ module SearchController {
     else
       match (AppConfig.search_type) {
         case {solr}: callback(Search.Contact.search(state.key, query))
-        case {mongo}: callback({failure: @i18n("No mongo contact search implemented")})
+        case {mongo}: callback({failure: @intl("No mongo contact search implemented")})
       }
   }
 

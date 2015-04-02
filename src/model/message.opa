@@ -668,9 +668,9 @@ module Message {
     files =
       if (message.owners != [])
         List.filter_map(function (fid) {
-          match (File.get_raw_metadata(fid)) {
+          match (File.getMetadata(fid)) {
             case {some: ~{
-              id, name, size, mimetype, created, thumbnail,
+              id, name, size, mimetype, created, thumbnail, file, owner,
               encryption: {key: filePublicKey, nonce: fileNonce}
             }}:
               // Fetch corresponding token.
@@ -682,7 +682,7 @@ module Message {
                   }))
                 default: none // File won't be readable anyway.
               }
-            case {some: ~{id, name, size, mimetype, created, thumbnail, encryption: {none}}}:
+            case {some: ~{id, name, size, mimetype, created, thumbnail, file, owner, encryption: {none}}}:
               some((fid, ~{id, name, size, mimetype, created, thumbnail, encryption: {none}}))
             default: none // File is missing.
           }
@@ -702,7 +702,6 @@ module Message {
           case {some: dir}:
             List.fold(function((fid, meta), encrypted) {
               hidden = List.mem(fid, inline)
-              MailFile.attach(key, fid, mid)
               token = FileToken.create(key, {email: mid}, fid, meta, {read}, {some: dir}, hidden, {none}, true)
               match (meta.encryption) {
                 case ~{filePublicKey, fileSecretKey, fileNonce, nonce}:
@@ -1394,10 +1393,10 @@ module Message {
             case {full}:
               {full: Message.Api.full {resource extend ~payload}}
             case {raw}:
-              {failure: @i18n("Not implemented: raw format")}
+              {failure: @intl("Not implemented: raw format")}
           }
         default:
-          {failure: @i18n("Cannot access message")}
+          {failure: @intl("Cannot access message")}
       }
     }
 

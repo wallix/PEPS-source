@@ -103,6 +103,9 @@ module DbUtils {
     Option.map(_.f1, iter.next())
   }
 
+  /** Check whether the query has any results. */
+  function exists(x) { option(x) |> Option.is_some }
+
   /**
    * Fetch fixed-size pages of filtered entries from the database.
    * Most of the code is common to all uses. Specific functions include :

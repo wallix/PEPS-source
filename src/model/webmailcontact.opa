@@ -197,7 +197,7 @@ module WebmailContact {
     case {List:[{~String}]}: chk(String);
     case {List:[{~Int}]}: chk("{Int}");
     case {List:[{~Bool}]}: chk("{Bool}");
-    default: {bad:@i18n("Bad JSON for string object {json}")};
+    default: {bad:@intl("Bad JSON for string object {json}")};
     }
   }
 
@@ -211,7 +211,7 @@ module WebmailContact {
         case {none}: {ok:set(rcrd, {some:Int})};
         case {some:_}: {multiple};
         }
-      case {none}: {bad:@i18n("Bad integer string {Int}")};
+      case {none}: {bad:@intl("Bad integer string {Int}")};
       }
     }
     function chk(int Int) { match (cur) { case {none}: {ok:set(rcrd, {some:Int})}; case {some:_}: {multiple}; } }
@@ -221,7 +221,7 @@ module WebmailContact {
     case {List:[]}: {ok:rcrd};
     case {List:[{~String}]}: chks(String);
     case {List:[{~Int}]}: chk(Int);
-    default: {bad:@i18n("Bad JSON for int object {json}")};
+    default: {bad:@intl("Bad JSON for int object {json}")};
     }
   }
 
@@ -238,7 +238,7 @@ module WebmailContact {
       match (Bool) {
       case "TRUE": aux(true);
       case "FALSE": aux(false);
-      default: {bad:@i18n("Bad boolean string {Bool}")};
+      default: {bad:@intl("Bad boolean string {Bool}")};
       }
     }
     function chk(bool Bool) { match (cur) { case {none}: {ok:set(rcrd, {some:Bool})}; case {some:_}: {multiple}; } }
@@ -248,14 +248,14 @@ module WebmailContact {
     case {List:[]}: {ok:rcrd};
     case {List:[{~String}]}: chks(String);
     case {List:[{~Bool}]}: chk(Bool);
-    default: {bad:@i18n("Bad JSON for boolean object {json}")};
+    default: {bad:@intl("Bad JSON for boolean object {json}")};
     }
   }
 
   private function chkMultiple(aux, flds, res) {
     match (res) {
     case {ok:rcrd}: aux(flds, rcrd);
-    case {multiple}: {failure:@i18n("Multiple SINGLE-VALUE entries")};
+    case {multiple}: {failure:@intl("Multiple SINGLE-VALUE entries")};
     case {~bad}: {failure:bad};
     }
   }
@@ -442,12 +442,12 @@ module WebmailContact {
                         function (wc, webmailContactBlocked) { {wc with ~webmailContactBlocked} }));
 
           default:
-            {failure:@i18n("Bad webmailContact field '{fld.f1}'")};
+            {failure:@intl("Bad webmailContact field '{fld.f1}'")};
           }
         }
       }
       aux(Record, default_webmailContact);
-    default: {failure:@i18n("JSON value is not Record")};
+    default: {failure:@intl("JSON value is not Record")};
     }
   }
 

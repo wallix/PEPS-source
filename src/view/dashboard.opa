@@ -195,7 +195,7 @@ module Dashboard {
   }
 
   /** Generic element for compressed entries. */
-  // TODO @i18n
+  // TODO @intl
   function render_generic(verb, term, class, icon, labelclass, name, key, elts) {
     n = List.length(elts)
     plural = if (n > 1) "s" else ""
@@ -255,9 +255,9 @@ module Dashboard {
     else {
       n = summary.files.count
       label = match (summary.files.evt) {
-        case {new}: if (n > 1) @i18n("New files ({n})") else @i18n("New file")
-        case {delete}: if (n > 1) @i18n("Deleted files ({n})") else @i18n("Deleted file")
-        default: if (n > 1) @i18n("Updated files ({n})") else @i18n("Updated file")
+        case {new}: @intl("{n, plural, =1 {New file} other {New files (#)}}")
+        case {delete}: @intl("{n, plural, =1 {Deleted file} other {Deleted files (#)}}")
+        default: @intl("{n, plural, =1 {Updated file} other {Updated files (#)}}")
       }
       list = List.intersperse(<>, </>, summary.files.files)
       id = Dom.fresh_id()
@@ -474,9 +474,9 @@ module Dashboard {
         ~{title, id: team, icon: "users-o", name: "{team}", onclick: onclick("teams", path)}
       }, teams)
       // Standard elements.
-      [ {title: @i18n("Feed"),        id: "all",      icon: "newspaper-o", name: "all",   onclick: onclick("all", [])},
+      [ {title: @intl("Feed"),        id: "all",      icon: "newspaper-o", name: "all",   onclick: onclick("all", [])},
         {separator: AppText.teams(), button: none },
-        {title: @i18n("All teams"),   id: "allteams", icon: "users-o",   name: "teams", onclick: onclick("teams", [])} | elts ]
+        {title: @intl("All teams"),   id: "allteams", icon: "users-o",   name: "teams", onclick: onclick("teams", [])} | elts ]
     }
 
   } // END SIDEBAR

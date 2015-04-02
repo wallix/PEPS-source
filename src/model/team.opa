@@ -97,7 +97,7 @@ module Team {
       parent = Option.bind(get_directory, parent)
       Directory.create(key, name, parent)
     security =
-      descr = @i18n("Automatically generated, for use by users of team {name}")
+      descr = @intl("Automatically generated, for use by users of team {name}")
       cat = {classified: {
         level: 1,
         teams: [[key]],
@@ -138,7 +138,7 @@ module Team {
         case {some: (d,_)}: {some: d}
         default:
           email = Team.email(name, parent, domain)
-          team = new(creator, name, email, parent, @i18n("Automatically generated during Bulk import"))
+          team = new(creator, name, email, parent, @intl("Automatically generated during Bulk import"))
           {some: team.key}
       }
     }, path, {none})

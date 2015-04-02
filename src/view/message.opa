@@ -46,7 +46,7 @@ MessageView = {{
    * @return an html list, ready for insertion into the document.
    */
   @private addresses_list(mid, addresses, limit, nameonly) =
-    if addresses == [] then <>[{@i18n("No Recipient")}]</>
+    if addresses == [] then <>[{@intl("No Recipient")}]</>
     else
       length = List.length(addresses)
       (addrs, toggle) =
@@ -88,7 +88,7 @@ MessageView = {{
     // Fetch preview.
     action = <div class="file_action"><i class="fa fa-download-o"/></div>
     content =
-      <div class="file-attached-content" title="Download {name}">
+      <div class="file-item-content" title="Download {name}">
         <div class="name">{Utils.string_limit(35, name)}</div>
         <small class="size">{Utils.print_size(size)}</small>
       </div>
@@ -98,7 +98,7 @@ MessageView = {{
       | _ -> <div class="file-thumbnail"><div class="file-icon"><i class="fa fa-file-o"/></div>{action}{content}</div>
       end
     // Build icon.
-    <a href="{link}" class="file-attached pull-left fade in">
+    <a href="{link}" class="file-item pull-left fade in">
       {icon}
     </a>
 
@@ -114,7 +114,7 @@ MessageView = {{
 
   /** Fetch the metadata of a message attachment. */
   @server_private get_file(mid: Message.id, fid: File.id): option(MessageView.file) =
-    match File.get_raw(fid) with
+    match File.getRaw(fid) with
     | {some=raw} ->
       thumbnail =
         match (raw.thumbnail) with
@@ -161,12 +161,12 @@ MessageView = {{
           callback = {
             onclick= remove(header.id, key, _, _, _)
             icon= "times"
-            title= @i18n("Remove")
+            title= @intl("Remove")
           }
           line = List.map(LabelView.make_label(_, {some= callback}), labels)
           #{"{header.id}-labels-list"} <- WB.List.unstyled(line)
         | {failure= msg} ->
-          Notifications.error(@i18n("Message label failure"), <>{msg}</>)
+          Notifications.error(@intl("Message label failure"), <>{msg}</>)
       end
 
     /**
@@ -194,7 +194,7 @@ MessageView = {{
       callback = {
         onclick= remove(mid, key, _, _, _)
         icon= "times"
-        title= @i18n("Remove")
+        title= @intl("Remove")
       }
       List.map(LabelView.make_label(_, {some= callback}), labels) |> WB.List.unstyled
 
@@ -216,12 +216,12 @@ MessageView = {{
     /** The modify button. */
     @private @client modify(info) =
       <span>
-        {@i18n("Not read yet.")}
-        <a onclick={reedit(info, _)}>{@i18n("Modify message")}</a>
+        {@intl("Not read yet.")}
+        <a onclick={reedit(info, _)}>{@intl("Modify message")}</a>
       </span>
     /** Read / unread spans. */
-    @private @client @expand read(name) = <span><span class="email-read">{@i18n("Read by")}</span> {name}</span>
-    @private @client @expand unread(name) = <span><span class="email-unread">{@i18n("Unread by")}</span> {name}</span>
+    @private @client @expand read(name) = <span><span class="email-read">{@intl("Read by")}</span> {name}</span>
+    @private @client @expand unread(name) = <span><span class="email-unread">{@intl("Unread by")}</span> {name}</span>
 
     /** The reedition handler. */
     @private @client reedit(info, _evt) =
@@ -373,7 +373,7 @@ MessageView = {{
           if (encryption) then
             // Message encryption is enforced by the chosen security label.
             // First extract the user's secret key.
-            UserView.SecretKey.prompt(key, @i18n("Please enter your password to encrypt this message."), secretKey ->
+            UserView.SecretKey.prompt(key, @intl("Please enter your password to encrypt this message."), secretKey ->
               match (secretKey) with
               | {some= secretKey} ->
                 // Generate a keyPair for the message.
@@ -396,7 +396,7 @@ MessageView = {{
                 }
                 MessageController.Async.reply(mid, thread, to, cc, subject, content, labels, security, files, encryption, callback(mid, _))
               | _ ->
-                callback(mid, {failure= (@i18n("Unable to encrypt this message, retry later"), [])})
+                callback(mid, {failure= (@intl("Unable to encrypt this message, retry later"), [])})
               end)
           else
             MessageController.Async.reply(mid, thread, to, cc, subject, content, labels, security, files, {none}, callback(mid, _))
@@ -418,7 +418,7 @@ MessageView = {{
   // download_all(mid, mfiles)(_) =
   //   state = Login.get_state()
   //   List.filter_map(hfid ->
-  //     match File.get_raw(hfid)
+  //     match File.getRaw(hfid)
   //     {none} -> none
   //     {some=file} -> some(FSController.to_uri(mid, file))
   //   , mfiles)
@@ -548,7 +548,7 @@ MessageView = {{
      */
     @both display(content) =
       if (content == "") then
-        <pre>{@i18n("(empty message)")}</pre>
+        <pre>{@intl("(empty message)")}</pre>
       else <pre>{content}</pre>
 
     /**
@@ -569,7 +569,7 @@ MessageView = {{
           do Snippet.select(mid) // Change the list selection and update read status.
           decrypt(user, mid, content, encryption)
         | ~{failure} ->
-          Notifications.error(@i18n("Load error"), <>{@i18n("Unable to retrieve the message content")}</>)
+          Notifications.error(@intl("Load error"), <>{@intl("Unable to retrieve the message content")}</>)
         | msg ->
           do log("Content.open: unexpected return value: {msg}")
           decrypt(user, mid, "", {none})
@@ -586,7 +586,7 @@ MessageView = {{
         messageSecretKey = Uint8Array.decodeBase64(messageSecretKey)
         keyNonce = Uint8Array.decodeBase64(keyNonce)
         // Extract the user secret key.
-        UserView.SecretKey.prompt(user, @i18n("Please enter your password to decrypt this message."), secretKey ->
+        UserView.SecretKey.prompt(user, @intl("Please enter your password to decrypt this message."), secretKey ->
           match (secretKey) with
           | {some= secretKey} ->
             // Open the message secret key.
@@ -602,12 +602,12 @@ MessageView = {{
               | {some= content} ->
                 do #{"{mid}-content"} <- Uint8Array.encodeUTF8(content) |> display
                 runCallback()
-              | _ -> Notifications.error(AppText.password(), <>{@i18n("PEPS failed to open this message")}</>)
+              | _ -> Notifications.error(AppText.password(), <>{@intl("PEPS failed to open this message")}</>)
               end
-            | _ -> Notifications.error(AppText.password(), <>{@i18n("PEPS failed to open this message")}</>)
+            | _ -> Notifications.error(AppText.password(), <>{@intl("PEPS failed to open this message")}</>)
             end
           | _ ->
-            Notifications.error(AppText.password(), <>{@i18n("PEPS failed to open this message")}</>)
+            Notifications.error(AppText.password(), <>{@intl("PEPS failed to open this message")}</>)
           end)
       | _ ->
         do #{"{mid}-content"} <- display(content)
@@ -770,7 +770,7 @@ MessageView = {{
       fetch(mid, thread)
 
     /**
-     * Build the message display. Keep server side, else all i18n calls amount to ~20 requests being sent to the server.
+     * Build the message display. Keep server side, else all intl calls amount to ~20 requests being sent to the server.
      * @content the message content (overrides message.content). If none, the content remains hidden until the the toggle
      *  has been hit (useful for threads).
      *
@@ -806,7 +806,7 @@ MessageView = {{
       t1 = Date.now()
 
       /// Message header.
-      subject = if header.subject == "" then "({@i18n("no subject")})" else header.subject
+      subject = if header.subject == "" then "({@intl("no subject")})" else header.subject
       heading =
         if (displayHeading) then
           <div class="pane-heading" style="position:relative;">
@@ -925,8 +925,8 @@ MessageView = {{
           </span>
         else <></>
       quickreply =
-        openreply = <a id="{mid}-expand-reply">{@i18n("Expand")}</a>
-        cancelbtn = <a onclick={Reply.cancel(mid, _)}>{@i18n("Close")}</a>
+        openreply = <a id="{mid}-expand-reply">{@intl("Expand")}</a>
+        cancelbtn = <a onclick={Reply.cancel(mid, _)}>{@intl("Close")}</a>
         sendbtn =
           <button type="button" class="btn btn-primary" id="{mid}-send-reply-button"
               data-complete-text="{AppText.Send()}"
@@ -938,7 +938,7 @@ MessageView = {{
           <div class="msg-row">
             <div class="pull-right message-close">{openreply}{cancelbtn}</div>
             <div class="message-reply-to pull-left">
-              <label>{@i18n("Reply to")}: </label>
+              <label>{@intl("Reply to")}: </label>
               <span id="{mid}-reply-to">{from}</span>
               {replymode}
             </div>
@@ -947,7 +947,7 @@ MessageView = {{
             <div class="pull-right message-reply-actions">
               <span id="quickreply-dropzone" class="btn btn-icon fa fa-paperclip dropzone"
                   onclick={Reply.upload} rel="tooltip"
-                  title="{@i18n("Drop files here")}" data-placement="left">
+                  title="{@intl("Drop files here")}" data-placement="left">
                 <img id="{mid}-reply-file-loader" src="/resources/img/facebook-loader.gif" style="display:none"/>
               </span>
               {sendbtn}
@@ -992,7 +992,7 @@ MessageView = {{
             actions =
               if is_trash then [
                 { divider },
-                { inactive= <>{@i18n("Untrash")}</>
+                { inactive= <>{@intl("Untrash")}</>
                   href=none
                   onclick=move(mid, {trash}, status.moved.from, _) }
               ] else []
@@ -1004,7 +1004,7 @@ MessageView = {{
                   data-toggle="dropdown">
               </button>
               <ul class="dropdown-menu pull-right" role="menu">
-                <li class="dropdown-header">{@i18n("Move To")}</li>
+                <li class="dropdown-header">{@intl("Move To")}</li>
                 {menu}
               </ul>
             </div>
@@ -1038,7 +1038,7 @@ MessageView = {{
       content =
         if (content == none) then
           <div id="{mid}-content" class="message_content">
-            <a id="{mid}-content-toggle" onclick={Content.fetch(key, mid, encryption, _)}><small>{@i18n("Display content")}</small></a>
+            <a id="{mid}-content-toggle" onclick={Content.fetch(key, mid, encryption, _)}><small>{@intl("Display content")}</small></a>
           </div>
         else if (encryption == {none}) then <div id="{mid}-content" class="message_content">{Content.display(content ? "")}</div>
         else <div id="{mid}-content" class="message_content" onready={Content.open(key, mid, content, encryption, _)}></div>
@@ -1218,12 +1218,12 @@ MessageView = {{
       // Misc.
       mid = message.id
       thread = message.thread
-      subject = highlight(message.highlighted.subject, message.subject, @i18n("no subject"), 32)
-      content = highlight(message.highlighted.content, message.snippet, @i18n("empty message"), 100)
+      subject = highlight(message.highlighted.subject, message.subject, @intl("no subject"), 32)
+      content = highlight(message.highlighted.content, message.snippet, @intl("empty message"), 100)
       rclass = if message.flags.read then "read" else "unread"
       incopy = if message.flags.incopy then "incopy" else ""
-      // subject = if msubject == <></> then <>{"({@i18n("no subject")})"}</> else msubject
-      // content = if mcontent == <></> then <>{"({@i18n("empty message")})"}</> else mcontent
+      // subject = if msubject == <></> then <>{"({@intl("no subject")})"}</> else msubject
+      // content = if mcontent == <></> then <>{"({@intl("empty message")})"}</> else mcontent
       security =
         WB.Label.make(<></>, Label.to_importance(Label.category(message.security))) |>
         Xhtml.update_class("pull-right", _)
@@ -1235,8 +1235,8 @@ MessageView = {{
         if message.flags.sent then
           email =
             match (@toplevel.Message.Address.email(message.from)) with
-            | {some= email} -> {external= {email with name=some(@i18n("me"))}}
-            | _ -> {unspecified=@i18n("me")}
+            | {some= email} -> {external= {email with name=some(@intl("me"))}}
+            | _ -> {unspecified=@intl("me")}
             end
           me = @toplevel.Message.Address.to_html(email, none, true)
           <span class="message_to">{me}</span>
@@ -1247,7 +1247,7 @@ MessageView = {{
       attach =
         nfiles = List.length(message.files)
         if nfiles > 0 then
-          <span title="{@i18n("This message has {nfiles} attachments")}" class="fa fa-paperclip" data-placement="bottom" rel="tooltip"></span>
+          <span title="{@intl("This message has {nfiles, number} attachments")}" class="fa fa-paperclip" data-placement="bottom" rel="tooltip"></span>
         else <></>
       // Attachment highlightings.
       files = List.map(extract -> <div class="file_content">{Xhtml.of_string_unsafe(extract)}</div>, message.highlighted.files)
@@ -1323,7 +1323,7 @@ MessageView = {{
           <h3>{Box.name(mbox ? {inbox})}</h3>
         </div>
         <div class="empty-text">
-          <p>{@i18n("No thread")}</p>
+          <p>{@intl("No thread")}</p>
         </div>
       else
         elts = Snippet.build_list(mbox, page)
@@ -1334,7 +1334,7 @@ MessageView = {{
           header =
             <div class="pane-heading" onready={Thread.load(mbox, some(mid), none, _)}>
               <h3>
-                {AppText.search()}: <small class="page_num">{page.size} {@i18n("results for")} <b>{query}</b></small>
+                {AppText.search()}: <small class="page_num">{page.size} {@intl("results for")} <b>{query}</b></small>
               </h3>
             </div>
           header <+> <ul class="list-unstyled">{elts}</ul>
@@ -1345,7 +1345,7 @@ MessageView = {{
           ref = page.last
           mailcount = Folder.count(state.key, mbox)
           mailcount =
-            if (mailcount > 1) then <small class="page_num">{@i18n("about {mailcount} results")}</small>
+            if (mailcount > 1) then <small class="page_num">{@intl("about {mailcount, number} results")}</small>
             else <></>
           empty_trash =
             if (mbox == {trash}) then <a onclick={empty_trash}>{AppText.empty_trash()}</a>

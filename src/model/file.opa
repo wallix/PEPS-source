@@ -19,6 +19,8 @@
 
 package com.mlstate.webmail.model
 
+abstract type File.id = DbUtils.oid
+
 /**
  * File encryption. If the encryption is not none,
  * the fields nonce and key will be set to the parameters
@@ -32,6 +34,17 @@ type File.encryption =
     string key } or
   { none }
 
+/** User access rights. */
+type File.access =
+  {admin} or     // Write + share access.
+  {read} or      // Read only.
+  {write}        // Read and Write.
+
+/** Generic file location. */
+type File.location =
+  {Directory.id directory} or
+  {Path.t path}
+
 /**
  * The files contain the information common to a series of verions.
  * In particular:
@@ -44,11 +57,9 @@ type File.encryption =
  * The file type does not include labels, as those are specific to each user.
  */
 
-abstract type File.id = DbUtils.oid
-
 type File.t = {
   File.id id,                // Unique id.
-  User.key owner,            // File owner.
+  User.key owner,            // File owner (=creator).
   Label.id security,         // File security.
 
   RawFile.id published,      // Published version.
@@ -58,32 +69,22 @@ type File.t = {
 }
 
 database File.t /webmail/files[{id}]
-database /webmail/files[_]/deleted = {none}
-
-/**
- * Link a File with a Mail message. Used
- * as a reversed index to query which mails a file is attached to.
- */
-
-type MailFile.t = {
-  User.key key,              // Not necessarily the owner of the file.
-  File.id id,                // Mail attachment.
-  list(Message.id) mids      // List of mails containing the attachment.
-}
-
-database MailFile.t /webmail/mailfiles[{key, id}]
+database /webmail/files[_]/deleted = none
 
 
 module File {
 
-  private function log(msg) { Log.notice("File:", msg) }
+  /** {1} Utils. */
+
+  private function log(msg) { Log.notice("[File]", msg) }
+  private function warning(msg) { Log.warning("[File]", msg) }
+
   @stringifier(File.id) function sofid(id) { DbUtils.OID.sofid(id) }
   function File.id idofs(string s) { s }
   File.id dummy = DbUtils.OID.dummy
 
-  /**
-   * {1 File creation.}
-   */
+
+  /** {1} File creation. */
 
   /** Insert a file in the database. */
   private function insert(File.t file) {
@@ -117,77 +118,169 @@ module File {
     insert(file)
   }
 
+
   /** {1} Getters. */
 
-  function get(File.id id) {
-    ?/webmail/files[id == id]
-  }
-  function get_published(File.id id) {
-    ?/webmail/files[id == id]/published
-  }
-  function get_security(File.id id) {
-    DbUtils.option(/webmail/files[id == id and deleted == {none}]/security)
-  }
-  function get_owner(File.id id) {
-    ?/webmail/files[id == id]/owner
-  }
+  /** General getters. */
+  function get(File.id id) { ?/webmail/files[id == id] }
+  function getPublished(File.id id) { ?/webmail/files[id == id]/published }
+  function getClass(File.id id) { DbUtils.option(/webmail/files[id == id and deleted == none]/security) }
+  function getOwner(File.id id) { ?/webmail/files[id == id]/owner }
 
-  /** Return the name of the published version. */
-  function get_name(File.id id) { Option.bind(RawFile.get_name, get_published(id)) }
+  /** Getters applying to the current raw version. */
+  function getName(File.id id) { Option.bind(RawFile.getName, getPublished(id)) }
+  function getRaw(File.id id) { Option.bind(RawFile.get, getPublished(id)) }
+  function getMetadata(File.id id) { Option.bind(RawFile.getMetadata, getPublished(id)) }
 
-  /** Return the published version (the entire file, not just the id). */
-  function get_raw(File.id id) { Option.bind(RawFile.get, get_published(id)) }
-  function get_raw_metadata(File.id id) { Option.bind(RawFile.get_metadata, get_published(id)) }
+  /** Refer to RawFile namesakes. */
+  function getResource(File.id id) { Option.bind(RawFile.getResource, getPublished(id)) }
+  function getAttachment(File.id id, bool data) { Option.bind(RawFile.getAttachment(_, data), getPublished(id)) }
+  function getPayload(File.id id, string partId) { Option.bind(RawFile.getPayload(_, partId), getPublished(id)) }
 
-  /** Refer to RawFile.getResource. */
-  function getResource(File.id id) { Option.bind(RawFile.getResource, ?/webmail/files[id == id]/published) }
-  /** Refer to RawFile.getAttachment. */
-  function getAttachment(File.id id, bool data) { Option.bind(RawFile.getAttachment(_, data), ?/webmail/files[id == id]/published) }
-  /** Refer to RawFile.getPayload. */
-  function getPayload(File.id id, string partId) { Option.bind(RawFile.getPayload(_, partId), ?/webmail/files[id == id]/published) }
 
   /** {1} Querying. */
 
-  // FIXME: COMPLEXITY is not acceptable
-  // used once for solr_search reextract
-  function iterator() {
-    DbSet.iterator(/webmail/files)
-  }
-  // FIXME: COMPLEXITY is not acceptable
-  // used once for solr_search reextract
+  /** Used once for solr reindexing. FIXME: COMPLEXITY is not acceptable. */
+  function iterator() { DbSet.iterator(/webmail/files) }
+  /** FIXME complexity is not acceptable. */
   function count(option(User.key) key) {
-    ( match (key) {
-      case {none}: DbSet.iterator(/webmail/files.{})
-      case {some: key}: DbSet.iterator(/webmail/files[owner == key and deleted == {none}].{})
-    })
-    |> Iter.count
+    match (key) {
+      case {none}: DbSet.iterator(/webmail/files.{}) |> Iter.count
+      case {some: key}: DbSet.iterator(/webmail/files[owner == key and deleted == {none}].{}) |> Iter.count
+    }
   }
 
-  function iterator_of(list(File.id) ids) {
-    DbSet.iterator(/webmail/files[id in ids])
-  }
 
-  /**
-   * {1 Modifiers.}
-   */
+  /** {1} Modifiers. */
 
-  /**
-   * Return the version number of the given file, and increment it in the database.
-   */
+  /** Return the version number of the given file, and increment it in the database. */
   function version(File.id id) {
     last = ?/webmail/files[id == id]/version
     match (last) {
       case {some: version}:
-        /webmail/files[id == id]/version++
+        /webmail/files[id == id] <- {version++}
         version
-      default:
-        0
+      default: 0
     }
   }
 
-  function update_security(File.id id, Label.id security) {
+  /**
+   * Rename the published version of the file, and propagates the changes to
+   * associated tokens.
+   */
+  function rename(File.id id, string newname) {
+    log("rename: id={id} newname={newname}")
+    match (getMetadata(id)) {
+      case {some: metadata}:
+        if (metadata.name != newname) {
+          RawFile.rename(metadata.id, newname)
+          // Publish changes.
+          metadata = {metadata with name: newname}
+          DbSet.iterator(/webmail/filetokens[file == id]) |>
+          Iter.iter(function (token) { FileToken.update(token, metadata) |> ignore }, _)
+        }
+      default: void
+    }
+  }
+
+  /**
+   * Same as {publish}, but the changes are immediatly propagated to the tokens attached to the file.
+   * @return the version number that must be given to the raw file.
+   */
+  function revise(File.id id, RawFile.t raw) {
+    last = ?/webmail/files[id == id]/version
+    match (last) {
+      case {some: version}:
+        /webmail/files[id == id] <- {version++, published: raw.id}
+        DbSet.iterator(/webmail/filetokens[file == id]) |>
+        Iter.iter(function (token) { FileToken.update(token, raw) |> ignore }, _)
+        version
+      default: 0
+    }
+  }
+
+  /** Same as {revise}, where the raw file hasn't been created yet. */
+  function modify(File.id id, binary data, string mimetype, string filename, User.key owner) {
+    last = ?/webmail/files[id == id]/version
+    match (last) {
+      case {some: version}:
+        // Create the raw file with these parameters.
+        raw = RawFile.create(owner, filename, mimetype, data, id, version, none)
+        /webmail/files[id == id] <- {version++, published: raw.id}
+        DbSet.iterator(/webmail/filetokens[file == id]) |>
+        Iter.iter(function (token) { FileToken.update(token, raw) |> ignore }, _)
+        version
+      default: 0
+    }
+  }
+
+  /** Return the history of the modifications of a file. */
+  function history(File.id file) {
+    DbSet.iterator(/webmail/rawfiles[
+      file == file and deleted == false; order -version
+    ].{id, size, mimetype, created, thumbnail, name, encryption, file, owner}) |> Iter.to_list
+  }
+
+  /**
+   * Delete a file version from the file's history. If the selected version is the published one,
+   * the next version in the history is selected and published. If only one version remains, or if the
+   * provided rawfile is not a version of the file, the operation fails.
+   *
+   * @return the new published version (if successful).
+   */
+  function option(RawFile.id) deleteVersion(File.id file, RawFile.id version) {
+    log("deleteVersion: file={file} version={version}")
+    // Gather the list of file versions.
+    history = DbSet.iterator(/webmail/rawfiles[
+      file == file and deleted == false; order -version
+    ]/id) |> Iter.to_list
+    published = ?/webmail/files[id == file]/published ? version
+    size = List.length(history)
+    // Cannot delete the version without deleting the file.
+    if (size <= 1) {
+      log("deleteVersion: cannot delete last version of {file}")
+      none
+    } else
+      match (List.index(version, history)) {
+        // The version is not part of the file history.
+        case {none}:
+          log("deleteVersion: {version} is not a version of {file}")
+          none
+        case {some: n}:
+          // Select a new version to be published if necessary.
+          if (version == published) {
+            index = if (n == size-1) n-1 else n+1
+            newVersion = List.nth(index, history) ? version
+            if (publishVersion(file, newVersion)) {
+              RawFile.delete(version)
+              some(newVersion)
+            } else none
+          } else {
+            RawFile.delete(version)
+            some(published)
+          }
+      }
+  }
+
+  /**
+   * Modify the published version of the file. The function assumes pub is already a version of the file.
+   * Updates all the tokens attached to this file.
+   */
+  function bool publishVersion(File.id id, RawFile.id version) {
+    match (RawFile.getMetadata(version)) {
+      case {some: metadata}:
+        /webmail/files[id == id] <- {published: version}
+        DbSet.iterator(/webmail/filetokens[file == id]) |>
+        Iter.iter(function (token) { FileToken.update(token, metadata) |> ignore }, _)
+        true
+      case {none}: false
+    }
+  }
+
+  /** Change the classification of the file (propagates the change to all associated tokens). */
+  function setClass(File.id id, Label.id security) {
     @catch(Utils.const(false), {
-      /webmail/files[id == id]/security <- security
+      /webmail/files[id == id] <- ~{security; ifexists}
       /webmail/filetokens[file == id] <- ~{security}
       true
     })
@@ -198,65 +291,72 @@ module File {
    * lies in the fact that the security is changed iff the previous label is
    * 'default', 'notify' or 'attached'.
    */
-  function add_security(File.id id, Label.id security) {
-    match (get_security(id)) {
+  function addClass(File.id id, Label.id security) {
+    match (getClass(id)) {
       case {some: previous}:
         if (previous == Label.attached.id ||
             previous == Label.open.id ||
             previous == Label.internal.id ||
             previous == Label.notify.id)
-            update_security(id, security) |> ignore
+            setClass(id, security) |> ignore
       case {none}: void
     }
   }
 
-  /**
-   * Modify the published version of the file.
-   */
-  function publish(File.id id, RawFile.id pub) {
-    @catch(Utils.const(false), {
-      /webmail/files[id == id]/published <- pub
-      true
-    })
+  /** {1} Access checks. */
+
+  function canWrite(User.key user, File.id id) {
+    teams = User.get_teams(user)
+    match (DbUtils.option(/webmail/filetokens[file == id and owner in [user|teams]]/access)) {
+      case {some: access}: Access.write(access)
+      default: false
+    }
+  }
+  function canRead(User.key user, File.id id) {
+    teams = User.get_teams(user)
+    DbUtils.exists(/webmail/filetokens[file == id and owner in [user|teams]; limit 1].{})
   }
 
-}
+  /** {1} Operations on user access rights. */
 
-module MailFile {
+  module Access {
 
-  private function log(msg) { Log.notice("MailFile:", msg) }
+    /** Check whether the user has write access. */
+    function write(File.access a) {
+      match (a) {
+        case {read}: false
+        case {admin} case {write}: true
+      }
+    }
 
-  /**
-   * The index is created only if not present in the db.
-   */
-  function void create(User.key key, id) {
-    if (DbUtils.option(/webmail/mailfiles[key == key and id == id]) |> Option.is_some) void
-    else
-      /webmail/mailfiles[key == key and id == id] <- ~{key, id, mids: []}
-  }
+    /** Check whether the user can share the file. */
+    function share(File.access a) {
+      a == {admin}
+    }
 
-  /**
-   * Define the file [id] as attachment of the mail [mid].
-   */
-  function void attach(key, id, mid) {
-    // Ensure that the structure exists.
-    create(key, id)
-    // Add the file.
-    /webmail/mailfiles[key == key and id == id]/mids <+ mid
-  }
+    /** Check whether a0 >> a1. */
+    function imply(File.access a0, File.access a1) {
+      pair = (a0, a1)
+      match (pair) {
+        case ({admin}, _): true
+        case (_, {admin}): false
+        case ({write}, _): true
+        case (_, {write}): false
+        case ({read}, {read}): true
+      }
+    }
 
- /**
-   * Remove the file [id] as attachment of the mail [mid].
-   */
-  function void detach(User.key key, File.id id, Message.id mid) {
-    /webmail/mailfiles[key == key and id == id]/mids <--* mid
-  }
+    /** Return the highest access rights of the two. */
+    function max(File.access a0, File.access a1) {
+      pair = (a0, a1)
+      match (pair) {
+        case ({admin}, _)
+        case (_, {admin}): {admin}
+        case ({write}, _)
+        case (_, {write}): {write}
+        default: {read}
+      }
+    }
+  } // END ACCESS
 
-  /**
-   * Return the lit of mails the given file is attached to.
-   */
-  function get(User.key key, File.id id) {
-    /webmail/mailfiles[key == key and id == id]/mids
-  }
-
-}
+} // END FILE.

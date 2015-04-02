@@ -32,7 +32,7 @@ module SearchView {
           case {files: _}:
             Dom.transform([
               #files_list = html,
-              #search_notice = "{@i18n("File search")}: \"{query}\""
+              #search_notice = "{@intl("File search")}: \"{query}\""
             ])
             Dom.hide(#files_breadcrumb)
             Dom.show(#search_notice)
@@ -100,7 +100,7 @@ module SearchView {
       case {files: _}:           SearchController.search_files(state, query, server_file_search_callback(mode, path, state, query, _))
       case {people: "users"}:    SearchController.search_users(state, query, server_user_search_callback(mode, state, query, _))
       case {people: "contacts"}: SearchController.search_contacts(state, query, server_contact_search_callback(mode, state, query, _))
-      default:                   Notifications.error(AppText.search(), <>{@i18n("No search for {Mode.name(mode)} implemented yet")}</>)
+      default:                   Notifications.error(AppText.search(), <>{@intl("No search for {Mode.name(mode)} implemented yet")}</>)
     }
   }
 
@@ -138,22 +138,22 @@ module SearchView {
     else if (Dom.is_empty(#clear_query))
       Dom.put_after(
         #search_input,
-        Dom.of_xhtml(<span id="clear_query" class="fa fa-close-o" title="{@i18n("Clear query")}" onclick={clear}></span>)
+        Dom.of_xhtml(<span id="clear_query" class="fa fa-close-o" title="{@intl("Clear query")}" onclick={clear}></span>)
       ) |> ignore
   }
 
   protected function build_form(Login.state state) {
     Modal.make(
       "search_info",
-      <> {@i18n("Some hints about search")} : </>,
+      <> {@intl("Some hints about search")} : </>,
       <>
-        <div> {@i18n("The search will be performed on the current box only, and only for already fetched emails.")}</div><br>
-        <div><span class="search_info_label"> {@i18n("hello")} </span> : {@i18n("search for all mails containing 'hello' or any word that contains 'hello'")}</div>
-        <div><span class="search_info_label"> {"\"{@i18n("hello")}\""} </span> : {@i18n("search for all mails containing the word 'hello'")}</div><br>
-        <div> {@i18n("To combine several words, use space as OR, and symbol '+' as AND")} </div><br>
-        <div><span class="search_info_label"> {@i18n("hello world")} </span> : {@i18n("search for all mails containing either 'hello' OR 'world', or any word that contains 'hello' or 'world'")}</div>
-        <div><span class="search_info_label"> {@i18n("hello + world")} </span> : {@i18n("search for all mails containing both 'hello' AND 'world', or any word that contains 'hello' or 'world '")}</div>
-        <div><span class="search_info_label"> {@i18n("hello + world  again")}</span> : {@i18n("search for all mails containing both 'hello' AND 'world' OR 'again', or any word that contains 'hello', 'world ' or 'again'")}</div>
+        <div> {@intl("The search will be performed on the current box only, and only for already fetched emails.")}</div><br>
+        <div><span class="search_info_label"> {@intl("hello")} </span> : {@intl("search for all mails containing 'hello' or any word that contains 'hello'")}</div>
+        <div><span class="search_info_label"> {"\"{@intl("hello")}\""} </span> : {@intl("search for all mails containing the word 'hello'")}</div><br>
+        <div> {@intl("To combine several words, use space as OR, and symbol '+' as AND")} </div><br>
+        <div><span class="search_info_label"> {@intl("hello world")} </span> : {@intl("search for all mails containing either 'hello' OR 'world', or any word that contains 'hello' or 'world'")}</div>
+        <div><span class="search_info_label"> {@intl("hello + world")} </span> : {@intl("search for all mails containing both 'hello' AND 'world', or any word that contains 'hello' or 'world '")}</div>
+        <div><span class="search_info_label"> {@intl("hello + world  again")}</span> : {@intl("search for all mails containing both 'hello' AND 'world' OR 'again', or any word that contains 'hello', 'world ' or 'again'")}</div>
       </>,
       WB.Button.make({button: <>OK</>, callback: hide}, []),
       Modal.default_options

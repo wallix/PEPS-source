@@ -50,89 +50,89 @@ module AppParameters {
   // smtp_monitor2_addr = Mutable.make("localhost")
 
   private CommandLine.family(AppParameters.t) parameters_family = {
-    title : @i18n("Parameters"),
+    title : @intl("Parameters"),
     init : default_params,
     anonymous : [],
     parsers : [
       { CommandLine.default_parser with
-        names : [@i18n("--set-admin-password")],
-        description : @i18n("Set the administrator password"),
-        param_doc : @i18n("<password>"),
+        names : [@intl("--set-admin-password")],
+        description : @intl("Set the administrator password"),
+        param_doc : @intl("<password>"),
         on_param : function(state) { parser { p=(.*) :
           state = { state with admin_pass : some(Text.to_string(p)) }
           {no_params : state}
         } } },
       { CommandLine.default_parser with
-        names : [@i18n("--set-domain")],
-        description : @i18n("Set PEPS domain"),
-        param_doc : @i18n("<domain>"),
+        names : [@intl("--set-domain")],
+        description : @intl("Set PEPS domain"),
+        param_doc : @intl("<domain>"),
         on_param : function(state) { parser { url=(.*) :
           state = { state with domain : some(Text.to_string(url)) }
           {no_params : state}
         } } },
       { CommandLine.default_parser with
-        names : [@i18n("--smtp-in-port")],
-        description : @i18n("Set the SMTP in port"),
-        param_doc : @i18n("<int>"),
+        names : [@intl("--smtp-in-port")],
+        description : @intl("Set the SMTP in port"),
+        param_doc : @intl("<int>"),
         on_param : function(state) { parser { port=Rule.integer :
           state = { state with smtp_in_port: port }
           {no_params : state}
         } } },
       { CommandLine.default_parser with
-        names : [@i18n("--smtp-out-port")],
-        description : @i18n("Set the SMTP out port"),
-        param_doc : @i18n("<int>"),
+        names : [@intl("--smtp-out-port")],
+        description : @intl("Set the SMTP out port"),
+        param_doc : @intl("<int>"),
         on_param : function(state) { parser { port=Rule.integer :
           state = { state with smtp_out_port: some(port) }
           {no_params : state}
         } } },
       { CommandLine.default_parser with
-        names : [@i18n("--smtp-out-host")],
-        description : @i18n("Set the SMTP out host"),
-        param_doc : @i18n("<string>"),
+        names : [@intl("--smtp-out-host")],
+        description : @intl("Set the SMTP out host"),
+        param_doc : @intl("<string>"),
         on_param : function(state) { parser { host=(.*) :
           state = { state with smtp_out_host: some(Text.to_string(host)) }
           {no_params : state}
         } } },
       { CommandLine.default_parser with
-        names : [@i18n("--set-key-size")],
-        description : @i18n("Set the RSA key size"),
-        param_doc : @i18n("<size>"),
+        names : [@intl("--set-key-size")],
+        description : @intl("Set the RSA key size"),
+        param_doc : @intl("<size>"),
         on_param : function(state) { parser { s=(.*) ->
           size = Int.of_string_opt(Text.to_string(s)) ? state.key_size
           state = { state with key_size : size }
           {no_params : state}
         } } },
       { CommandLine.default_parser with
-        names : [@i18n("--solr-addr")],
-        description : @i18n("Set the solr server address"),
-        param_doc : @i18n("<addr>"),
+        names : [@intl("--solr-addr")],
+        description : @intl("Set the solr server address"),
+        param_doc : @intl("<addr>"),
         on_param : function(state) { parser { addr=(.*) :
           state = { state with solr_addr : Text.to_string(addr) }
           {no_params : state}
         } } },
       { CommandLine.default_parser with
-        names : [@i18n("--solr-port")],
-        description : @i18n("Set the solr port number"),
-        param_doc : @i18n("<int>"),
+        names : [@intl("--solr-port")],
+        description : @intl("Set the solr port number"),
+        param_doc : @intl("<int>"),
         on_param : function(state) { parser { s=(.*) ->
           port = Int.of_string_opt(Text.to_string(s)) ? state.solr_port
           state = { state with solr_port : port }
           {no_params : state}
         } } },
       { CommandLine.default_parser with
-        names : [@i18n("--http-server-port")],
-        description : @i18n("Set the http server port number"),
-        param_doc : @i18n("<int>"),
+        names : [@intl("--http-server-port")],
+        description : @intl("Set the http server port number"),
+        param_doc : @intl("<int>"),
         on_param : function(state) { parser { s=(.*) ->
           port = Int.of_string_opt(Text.to_string(s))
           state = { state with http_server_port : port }
           {no_params : state}
         } } },
       { CommandLine.default_parser with
-        names : [@i18n("--no-ssl")],
-        description : @i18n("Disable SSL and use HTTP"),
-        param_doc : @i18n("<boolean>"),
+        names : [@intl("--no-ssl")],
+        description : @intl("Disable SSL and use HTTP"),
+        param_doc : @intl("<boolean>"),
         on_param : function(state) { parser { no_ssl=Rule.bool :
           state = { state with ~no_ssl }
           {no_params : state}
@@ -157,6 +157,7 @@ module AppParameters {
 
   /** Export app configuration. */
   function config(string name, string provider, string consumer_key, string consumer_secret, int port) {
+    Log.notice("[Config]", "Exporting {name}'s configuration")
     File.mkdir("/etc/peps/apps") |> ignore
     dirok = File.exists("/etc/peps/apps/{name}") || File.mkdir("/etc/peps/apps/{name}")
     if (dirok) {

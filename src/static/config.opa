@@ -73,7 +73,7 @@ module AppConfig {
   thumbsize = 100 // Size of image previews (square).
 
   admin_login = "admin"
-  admin_name = @i18n("Administrator")
+  admin_name = @intl("Administrator")
   admin_level = 20
   default_admin_pass = "admin"
 
@@ -89,12 +89,12 @@ module AppConfig {
 
   function level_view(level) {
     match (level) {
-      case 6: @i18n("Chief")
-      case 5: @i18n("Director")
-      case 4: @i18n("Senior")
-      case 3: @i18n("Manager")
-      case 2: @i18n("Junior")
-      case 1: @i18n("Intern")
+      case 6: @intl("Chief")
+      case 5: @intl("Director")
+      case 4: @intl("Senior")
+      case 3: @intl("Manager")
+      case 2: @intl("Junior")
+      case 1: @intl("Intern")
       default: "{level}"
     }
   }

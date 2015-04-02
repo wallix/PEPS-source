@@ -126,8 +126,8 @@ module FileView {
         case {mimetype}: {xhtml: <span class="file_kind o-selectable">{Utils.string_limit(35, token.mimetype)}</span>}
         case {class}:
           security =
-            match (File.get_security(token.file)) {
-              case {some: id}: Label.to_client(id) |> LabelView.make_label(_, none)
+            match (File.getClass(token.file)) {
+              case {some: id}: LabelView.Class.selector("{token.id}", state.key, id, setClass(token.id, _))
               default: <></>
             }
           {xhtml: <span class="file_labels o-selectable">{security}</span>}
@@ -163,7 +163,7 @@ module FileView {
       id = Share.id(src)
       isdir = Share.isdir(src)
       name = Dom.get_text(#{"{id}-name"})
-      match (Client.prompt(@i18n("Rename {name} into ?"), name)) {
+      match (Client.prompt(@intl("Rename {name} into ?"), name)) {
         case {some: ""}: void
         case {some: newname}:
           Dom.set_text(#{"{id}-name"}, newname)
@@ -175,7 +175,7 @@ module FileView {
             case ~{failure}:
               title = if (isdir) AppText.Folder() else AppText.File()
               Dom.set_text(#{"{id}-name"}, name)
-              Notifications.error(@i18n("{title} renaming failure"), <>{failure.message}</>)
+              Notifications.error(@intl("{title} renaming failure"), <>{failure.message}</>)
           })
         default: void
       }
@@ -185,14 +185,14 @@ module FileView {
     client function delete(src) {
       id = Share.id(src)
       name = Dom.get_text(#{"{id}-name"})
-      if (Client.confirm(@i18n("Are you sure you want to delete '{name}'?"))) {
+      if (Client.confirm(@intl("Are you sure you want to delete '{name}'?"))) {
         isdir = Share.isdir(src)
         FSController.Async.delete(src, function {
           // Client side.
           case {success: parent}: load_directory(parent)
           case ~{failure}:
             title = if (isdir) AppText.Folder() else AppText.File()
-            Notifications.error(@i18n("{title} deletion failure"), <>{failure.message}</>)
+            Notifications.error(@intl("{title} deletion failure"), <>{failure.message}</>)
         })
       }
     }
@@ -215,14 +215,14 @@ module FileView {
           reencrypt(state.key, parameters) // Validate encryption of shared copies.
         case ~{failure}:
           title = if (isdir) AppText.Directory() else AppText.File()
-          Notifications.error(@i18n("{title} move failure"), <>{failure.message}</>)
+          Notifications.error(@intl("{title} move failure"), <>{failure.message}</>)
       })
     }
     /** Select a move destination. */
     exposed function move(src, name, previous)(_evt) {
       owner = Share.switch(src, FileToken.get_owner, Directory.get_owner)
       DirChooser.create(~{
-        title: @i18n("Move file {name} to directory..."),
+        title: @intl("Move file {name} to directory..."),
         action: moveTo(src, name, _), user: owner,
         excluded: match (previous) { case {some: d}: [Directory.sofid(d)]; default: [] }
       })
@@ -245,7 +245,7 @@ module FileView {
       // No encrypted files -> do nothing.
       if (parameters == []) void
       else
-        UserView.SecretKey.prompt(sharer, @i18n("Please enter your password to complete sharing."), function {
+        UserView.SecretKey.prompt(sharer, @intl("Please enter your password to complete sharing."), function {
           case {some: secretKey}:
             // Compute the new encryption parameters.
             parameters = List.filter_map(function (encryption) {
@@ -278,8 +278,8 @@ module FileView {
             // Push the new encryption parameters to the server.
             if (parameters != [])
               FileTokenController.Async.reencrypt(parameters, function {
-                case {success}: Notifications.success(@i18n("Sharing completed"), <>{@i18n("The sharing has been successfully completed.")}</>)
-                case {failure: msg}: Notifications.error(@i18n("Sharing failure"), <>{msg}</>)
+                case {success}: Notifications.success(@intl("Sharing completed"), <>{@intl("The sharing has been successfully completed.")}</>)
+                case {failure: msg}: Notifications.error(@intl("Sharing failure"), <>{msg}</>)
               })
           // Sharing cancelled.
           // TODO: destroy copies of the encrypted files.
@@ -295,11 +295,11 @@ module FileView {
       function action(User.key user, list(User.key) sharees) {
         FSController.Async.shareWith(src, sharees, access, function {
           case {success: parameters}: reencrypt(user, parameters)
-          case {failure: msg}: Notifications.error(@i18n("Sharing failure"), <>{msg}</>)
+          case {failure: msg}: Notifications.error(@intl("Sharing failure"), <>{msg}</>)
         })
       }
       UserChooser.create({
-        title: @i18n("Share file {name} with"),
+        title: @intl("Share file {name} with"),
         immediate: false,
         callback: ~{ action, text: "Share" },
         custom: security,
@@ -315,7 +315,7 @@ module FileView {
         case {success: (parent, link)}:
           Client.winopen("/share/{link}", {_blank}, [], true) |> ignore
           load_directory(parent) // Add link to view ?
-        case ~{failure}: Notifications.error(@i18n("Sharing failure"), <>{failure.message}</>)
+        case ~{failure}: Notifications.error(@intl("Sharing failure"), <>{failure.message}</>)
       })
     }
 
@@ -329,7 +329,7 @@ module FileView {
             case {files: "links"}: Content.refresh()
             default: Content.update({mode: {files: "links"}, path: urn.path}, true)
           }
-        case ~{failure}: Notifications.error(@i18n("Unsharing failure"), <>{failure.message}</>)
+        case ~{failure}: Notifications.error(@intl("Unsharing failure"), <>{failure.message}</>)
       })
     }
 
@@ -341,48 +341,25 @@ module FileView {
    * Upload a file to the active directory.
    * Read the files upload via UploadView.modal.
    */
-  client function upload(where, _evt) {
+  client function upload(File.location where, _evt) {
     Button.loading(#upload_button)
     files = AttachedRef.list("upload")
     if (files == []) {
-      Notifications.error(@i18n("Upload failure"), <>{AppText.no_files_provided()}</>)
+      Notifications.error(@intl("Upload failure"), <>{AppText.no_files_provided()}</>)
       Button.reset(#upload_button)
     } else {
       security = Dom.get_attribute_unsafe(#file_class, "title")
-      FSController.upload(files, where, security, function {
+      FileController.upload(files, where, security, function {
         // Client side.
         case {success: (parent, files)}:
           UploadView.clear("upload")
           Modal.hide(#modal_upload)
           load_directory(parent)
         case ~{failure}:
-          Notifications.error(@i18n("Upload failure"), <>{failure.message}</>)
+          Notifications.error(@intl("Upload failure"), <>{failure.message}</>)
           Button.reset(#upload_button)
       })
     }
-  }
-
-  /**
-   * {2 Publication and update.}
-   *
-   * Updates change the active version, but the local modifications themselves are not discarded.
-   */
-  client function publish(file, name)(_evt) {
-    if (Client.confirm(@i18n("Are you sure you want to publish the file '{name}'?")))
-      FileTokenController.Async.publish(file, function {
-        // Client side.
-        case {success}: void
-        case ~{failure}: Notifications.error(@i18n("Publication failure"), <>{failure.message}</>)
-      })
-  }
-
-  client function sync(file, name)(_evt) {
-    if (Client.confirm(@i18n("Are you sure you want to update the file '{name}'?")))
-      FileTokenController.Async.sync(file, function {
-        // Client side.
-        case {success: parent}: load_directory(parent)
-        case ~{failure}: Notifications.error(@i18n("Update failure"), <>{failure.message}</>)
-      })
   }
 
   /** {2} Common operations. */
@@ -398,25 +375,11 @@ module FileView {
    * @param labels list of existing file labels. As of now, only the security label
    *    are in there. This argument is ingored.
    */
-  client function updateClass(tid, name, list(Label.Client.label) _labels)(_evt) {
-    function action(_, result) {
-      match (result) {
-        case [security]:
-          FSController.Async.set_security({file: tid}, security, function {
-            // Client side.
-            case {success: parent}: load_directory(parent)
-            case ~{failure}: Notifications.error(@i18n("File security failure"), <>{failure.message}</>)
-          })
-        case []: Notifications.error(@i18n("File security failure"), <>{@i18n("you must select one security label")}</>)
-        default: Notifications.error(@i18n("File security failure"), <>{@i18n("you can choose only one security label")}</>)
-      }
-    }
-    LabelChooser.create({
-      title: "Classify file {name} to...",
-      immediate: true,
-      custom: {class},
-      callback: ~{action, text: "reclassify"},
-      exclude: []
+  client function setClass(FileToken.id tid, Label.id class) {
+    FSController.Async.set_security({file: tid}, class, function {
+      // Client side.
+      case {success: parent}: load_directory(parent)
+      case ~{failure}: Notifications.error(@intl("File security failure"), <>{failure.message}</>)
     })
   }
 
@@ -431,7 +394,7 @@ module FileView {
       // Client side.
       case ~{chunks, key, raw}:
         // Retrieve the user's secret key.
-        UserView.SecretKey.prompt(key, @i18n("Please enter your password to encrypt this file."),
+        UserView.SecretKey.prompt(key, @intl("Please enter your password to encrypt this file."),
           function (secretKey) {
             match (secretKey) {
               case {some: secretKey}:
@@ -564,7 +527,7 @@ module FileView {
 
   // File
 
-  client function select(FileToken.id tid, name, access, security, parent, labels, xfid, _) {
+  client function select(FileToken.id tid, name, access, security, parent, labels, file, _) {
     Dom.remove_class(dollar("#files_list .active"), "active")
     activate = Dom.select_parent_one(Dom.select_parent_one(#{"file-{tid}"}))
     Dom.add_class(activate, "active")
@@ -573,7 +536,6 @@ module FileView {
     delete_link = delete(tid)
     rename_link = rename(tid)
     move_link = move(tid, name, parent)
-    class_link = updateClass(tid, name, labels)
     encrypt_link = encrypt(tid, name, Utils.const(void))
     text_link_list =
       Utils.text_link("share-o", share_link, AppText.share()) <+>
@@ -581,44 +543,24 @@ module FileView {
       Utils.text_link("trash-o", delete_link, AppText.delete()) <+>
       Utils.text_link("pencil-square-o", rename_link, AppText.rename()) <+>
       Utils.text_link("mail-forward-o", move_link, AppText.move()) <+>
-      Utils.text_link("flag-o", class_link, AppText.change_classification()) <+>
-      Utils.text_link("lock-o", encrypt_link, @i18n("Encrypt"))
+      Utils.text_link("lock-o", encrypt_link, @intl("Encrypt"))
     icon_link_list =
       Utils.icon_link("share-o", share_link, AppText.share()) <+>
       Utils.icon_link("link", create_link, AppText.create_link()) <+>
       Utils.icon_link("trash-o", delete_link, AppText.delete()) <+>
       Utils.icon_link("pencil-square-o", rename_link, AppText.rename()) <+>
       Utils.icon_link("mail-forward-o", move_link, AppText.move()) <+>
-      Utils.icon_link("flag-o", class_link, AppText.change_classification()) <+>
-      Utils.icon_link("lock-o", encrypt_link, @i18n("Encrypt"))
-    table_menu = match (xfid) {
-      case {ufile:ufid}: <></>
-      case {hfile:hfid}:
-        <ul class="dropdown-menu">
-          {text_link_list}
-          { 
-              <></>
-          }
-        </ul>
-      }
-    menu = match (xfid) {
-      case {ufile:ufid}: <></>
-      case {hfile:hfid}:
-        <ul class="nav visible-lg visible-md pull-right">
-          {text_link_list}
-        </ul>
-        <ul class="nav visible-sm pull-right">
-          {icon_link_list}
-        </ul>
-        <ul class="nav visible-xs pull-left">
-          <li>
-            <a class="dropdown-toggle" data-toggle="dropdown"><b class="caret"/></a>
-            <ul class="dropdown-menu" role="menu">
-              {text_link_list}
-            </ul>
-          </li>
-        </ul>
-    }
+      Utils.icon_link("lock-o", encrypt_link, @intl("Encrypt"))
+    table_menu = <ul class="dropdown-menu">{text_link_list}</ul>
+    menu =
+      <ul class="nav visible-lg visible-md pull-right">{text_link_list}</ul>
+      <ul class="nav visible-sm pull-right">{icon_link_list}</ul>
+      <ul class="nav visible-xs pull-left">
+        <li>
+          <a class="dropdown-toggle" data-toggle="dropdown"><b class="caret"/></a>
+          <ul class="dropdown-menu" role="menu">{text_link_list}</ul>
+        </li>
+      </ul>
     actions_bar =
       <div class="file-name pull-left"><i class="fa fa-file-o pull-left"></i> {name}</div> <+> menu
     #files_actions = actions_bar
@@ -650,8 +592,8 @@ module FileView {
     <div><a class="btn btn-primary btn-large" href="/raw/download/{sanid}/{sanname}">{AppText.download()}</a></div>
   }
 
-  function handles(id, name, access, security, parent, clabels, hfid) {
-    [ {name:{mousedown}, value: {expr: select(id, name, access, security, parent, clabels, {hfile: hfid}, _)}} ]
+  function handles(id, name, access, security, parent, clabels, file) {
+    [ {name:{mousedown}, value: {expr: select(id, name, access, security, parent, clabels, file, _)}} ]
   }
 
   /**
@@ -696,14 +638,14 @@ module FileView {
    * The path complement is added in the case of shared directories to identify the sub-directory.
    */
   private function build_shared_file(Login.state state, share, FileToken.t token, Path.t path) {
-    security = File.get_security(token.file) ? Label.open.id
+    security = File.getClass(token.file) ? Label.open.id
     spath = Option.map(Directory.get_path(_, true), token.dir) ? []
     fullpath = spath ++ path
 
     if (Label.KeySem.user_can_read_security(state.key, security) ||
         Option.map(Label.allows_internet, Label.get(security)) ? false)
       // FIXME: use an iframe ?
-      match (RawFile.get_metadata(token.active)) {
+      match (RawFile.getMetadata(token.active)) {
         case {some: raw}:
           <div class="main-page o-center" onready={init_shared_topbar(share, fullpath, _)}>
             {build_file(token.id, raw, token.name.fullname)}
@@ -834,7 +776,7 @@ module FileView {
                     case ~{dir}:
                       actions = build_actions()
                       navbar = build_navbar(state, {team: {id: {some: id}, ~path}})
-                      uploadto = Option.map(function (dir) { {left: dir} }, dir) ? {right: []} // Destination of uploaded files.
+                      uploadto = Option.map(function (dir) { {directory: dir} }, dir) ? {path: []} // Destination of uploaded files.
                       create = DirectoryView.create_modal(dir)
                       upload = UploadView.modal(uploadto, Team.get_security(team) ? Label.open.id)
                       <div class="pane-lg">
@@ -871,7 +813,7 @@ module FileView {
           case ~{dir}:
             actions = build_actions()
             navbar = build_navbar(state, {files: path})
-            upload = UploadView.modal({right: path}, Label.open.id)
+            upload = UploadView.modal(~{path}, Label.open.id)
             create = DirectoryView.create_modal(dir)
             <div class="pane-lg">
             <div class="pane-heading">{navbar}</div>
@@ -895,7 +837,7 @@ module FileView {
 
   /** File decryption. */
   client function decrypt(user, parameters, filename, mimetype, _evt) {
-    UserView.SecretKey.prompt(user, @i18n("Please enter your password to access this resource."), function {
+    UserView.SecretKey.prompt(user, @intl("Please enter your password to access this resource."), function {
       case {some: secretKey}:
         // Some decoding.
         filePublicKey = Uint8Array.decodeBase64(parameters.filePublicKey)
@@ -938,14 +880,14 @@ module FileView {
                 // TODO do something xith the bytes.
                 void
               default:
-                Notifications.error(@i18n("File error"), <>{@i18n("PEPS could not read this file.")}</>)
+                Notifications.error(@intl("File error"), <>{@intl("PEPS could not read this file.")}</>)
             }
           default:
             warning("decrypt: failed to decrypt the file secret key")
-            Notifications.error(@i18n("File error"), <>{@i18n("PEPS could not read this file.")}</>)
+            Notifications.error(@intl("File error"), <>{@intl("PEPS could not read this file.")}</>)
         }
       default:
-        Notifications.error(@i18n("File error"), <>{@i18n("PEPS could not read this file.")}</>)
+        Notifications.error(@intl("File error"), <>{@intl("PEPS could not read this file.")}</>)
     })
   }
 
@@ -1024,7 +966,7 @@ module FileView {
         match (RawFile.get(id)) {
           case {some: file}:
             // Check access rights.
-            security = File.get_security(file.file) ? Label.open.id
+            security = File.getClass(file.file) ? Label.open.id
             if (not(Label.KeySem.user_can_read_security(state.key, security) ||
                     Option.map(Label.allows_internet, Label.get(security)) ? false))
               {unauthorized: void}
@@ -1052,7 +994,7 @@ module FileView {
         { name: "documents", id: "documents",  icon: "files-o",    title: AppText.Documents(),     onclick: onclick("", [AppText.Documents()], _) },
         { name: "downloads", id: "downloads",  icon: "download-o", title: AppText.Downloads(),     onclick: onclick("", [AppText.Downloads()], _) },
         { name: "pictures",  id: "pictures",   icon: "photos-o",   title: AppText.Pictures(),      onclick: onclick("", [AppText.Pictures()], _) },
-        { name: "shared",    id: "shared",     icon: "users-o",    title: @i18n("Shared with me"), onclick: onclick("", [AppText.shared()], _) },
+        { name: "shared",    id: "shared",     icon: "users-o",    title: @intl("Shared with me"), onclick: onclick("", [AppText.shared()], _) },
         { name: "links",     id: "links",      icon: "link",       title: AppText.links(),         onclick: onclick("links", [], _) },
         { separator: AppText.Team_Folders(), button: none },
         { content: DirectoryView.list_teams(state, view) },

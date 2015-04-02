@@ -40,7 +40,7 @@ module AppView {
         url = "{app.url}/{Path.print(path)}{query}"
         <iframe id="iframe_{appname}" seamless src={url} class="app-iframe" style="border-width:0px; width:100%; height:100%;"></iframe>
       default:
-        <>{@i18n("Non-existant application")}</>
+        <>{@intl("Non-existant application")}</>
     }
   }
 

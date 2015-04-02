@@ -70,7 +70,7 @@ module ShareView {
           decorator: Utils.data_value(milli_date, _) },
         { xhtml:
             <span class="link_remove">
-                <a title="{@i18n("Remove {path}")}"
+                <a title="{@intl("Remove {path}")}"
                     onclick={FileView.Common.unshare(link)}><span class="fa fa-trash-o"/> {AppText.remove()}</a>
             </span> } ],
       handles: [

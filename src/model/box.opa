@@ -72,7 +72,7 @@ module Box {
   /** {2} Printing. */
 
   /** Return the viewable name of the box. */
-  name_no_i18n = function {
+  name_no_intl = function {
     case { inbox }: "inbox"
     case { starred }: "starred"
     case { archive }: "archive"
@@ -128,13 +128,13 @@ module Box {
   }
 
   /** Return the URN. */
-  function print_no_i18n(Mail.box box) {
+  function print_no_intl(Mail.box box) {
     match (box) {
       case { custom: id }:
         name = Folder.name(id) ? id
         "folder/{Uri.encode_string(name)}"
       case { unparsed: name }: "folder/{Uri.encode_string(name)}"
-      default: name_no_i18n(box) |> String.lowercase
+      default: name_no_intl(box) |> String.lowercase
     }
   }
 
@@ -290,7 +290,7 @@ module Folder {
   /** Rename the given folder. */
   function rename(User.key owner, Folder.id id, string newname) {
     debug("Rename folder {id}")
-    /webmail/folders[~{id, owner}]/name <- newname
+    /webmail/folders[~{id, owner}] <- {name: newname; ifexists}
   }
 
   /** {1} Queries */
@@ -368,10 +368,10 @@ module Folder {
    * The arguments are differentials to apply to the db counts.
    */
   function update_content(User.key owner, Folder.id id, dcount, dunread, dstarred, dnew) {
-    /webmail/folders[~{id, owner}] <- {content.count += dcount, content.unread += dunread, content.starred += dstarred, content.new += dnew}
+    /webmail/folders[~{id, owner}] <- {content.count += dcount, content.unread += dunread, content.starred += dstarred, content.new += dnew; ifexists}
   }
   function set_content(User.key owner, Folder.id id, content) {
-    /webmail/folders[~{id, owner}] <- ~{content}
+    /webmail/folders[~{id, owner}] <- ~{content; ifexists}
   }
 
   /**
@@ -448,8 +448,8 @@ module Folder {
           contents = Message.swap(owner, Box.iparse(id), diff, teams, lock)
           debug("diff: swapped {contents}")
           // Update box.
-          if (lock) /webmail/folders[~{owner, id}] <- {content: {count -= contents.count, new -= contents.new, unread -= contents.unread, starred -= contents.starred}}
-          else      /webmail/folders[~{owner, id}] <- {content: {count += contents.count, new += contents.new, unread += contents.unread, starred += contents.starred}}
+          if (lock) /webmail/folders[~{owner, id}] <- {content: {count -= contents.count, new -= contents.new, unread -= contents.unread, starred -= contents.starred}; ifexists}
+          else      /webmail/folders[~{owner, id}] <- {content: {count += contents.count, new += contents.new, unread += contents.unread, starred += contents.starred}; ifexists}
         }
       }, _)
   }

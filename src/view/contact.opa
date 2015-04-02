@@ -74,7 +74,7 @@ module ContactView {
       case {success: contact}:
         refresh_contacts()
         open_contact(contact.id, false, false, false)
-        Notifications.info(AppText.Update(), <>{@i18n("Contact updated")}</>)
+        Notifications.info(AppText.Update(), <>{@intl("Contact updated")}</>)
       case {failure: s}:
         Notifications.error(AppText.Update(), <>{s}</>)
     }
@@ -90,10 +90,10 @@ module ContactView {
       function (name) { some({Contact.empty_contact_organization with ~name}) })
     match ((emails.errors, phones.errors, addresses.errors, companies.errors)) {
       // Do NOT refresh the view; display a notification.
-      case ([_], _, _, _): Notifications.error(AppText.contacts(), <>{@i18n("Malformed email addresses {String.concat(", ", emails.errors)}")}</>)
-      case (_, [_], _, _): Notifications.error(AppText.contacts(), <>{@i18n("Malformed phone numbers {String.concat(", ", phones.errors)}")}</>)
-      case (_, _, [_], _): Notifications.error(AppText.contacts(), <>{@i18n("Malformed addresses {String.concat(", ", addresses.errors)}")}</>)
-      case (_, _, _, [_]): Notifications.error(AppText.contacts(), <>{@i18n("Malformed companies {String.concat(", ", companies.errors)}")}</>)
+      case ([_], _, _, _): Notifications.error(AppText.contacts(), <>{@intl("Malformed email addresses {String.concat(", ", emails.errors)}")}</>)
+      case (_, [_], _, _): Notifications.error(AppText.contacts(), <>{@intl("Malformed phone numbers {String.concat(", ", phones.errors)}")}</>)
+      case (_, _, [_], _): Notifications.error(AppText.contacts(), <>{@intl("Malformed addresses {String.concat(", ", addresses.errors)}")}</>)
+      case (_, _, _, [_]): Notifications.error(AppText.contacts(), <>{@intl("Malformed companies {String.concat(", ", companies.errors)}")}</>)
       default:
         ContactController.save(contact, format({
           contact with
@@ -122,20 +122,20 @@ module ContactView {
         refresh_contacts()
         open_contact(contact.id, false, false, false)
         Notifications.info(AppText.Block(),
-          if (b) <>{@i18n("Contact blocked")}</>
-          else <>{@i18n("Contact Unblocked")}</>)
+          if (b) <>{@intl("Contact blocked")}</>
+          else <>{@intl("Contact Unblocked")}</>)
       case {failure: s}:
         Notifications.error(AppText.Block(), <>{s}</>)
     }
   }
   client function do_block_contact(contact, _) {
-    // if (Client.confirm(@i18n("Are you sure you want to block this contact?"))) {
+    // if (Client.confirm(@intl("Are you sure you want to block this contact?"))) {
       Button.loading(#block_contact_button)
       ContactController.block(contact, true, block_contact_callback)
     // }
   }
   client function do_unblock_contact(contact, _) {
-    // if (Client.confirm(@i18n("Are you sure you want to unblock this contact?"))) {
+    // if (Client.confirm(@intl("Are you sure you want to unblock this contact?"))) {
       Button.loading(#block_contact_button)
       ContactController.block(contact, false, block_contact_callback)
     // }
@@ -149,14 +149,14 @@ module ContactView {
     match (res) {
       case {success: (contact)}:
         refresh_contacts()
-        Notifications.info(AppText.contact(), <>{@i18n("removed")}</>)
+        Notifications.info(AppText.contact(), <>{@intl("removed")}</>)
         Dom.transform([#contact_viewer = <></>])
       case {failure: s}:
         Notifications.error(AppText.contact(), <>{s}</>)
     }
   }
   client function do_remove_contact(contact, _) {
-    // if (Client.confirm(@i18n("Are you sure you want to remove this contact?"))) {
+    // if (Client.confirm(@intl("Are you sure you want to remove this contact?"))) {
       Button.loading(#remove_contact_button)
       ContactController.remove(contact, remove_contact_callback)
     // }
@@ -403,7 +403,7 @@ module ContactView {
       else do_block_contact(contact, _)
     name = contact.info.displayName
     heading =
-      if (contact.info.displayName == "") <>{@i18n("Create a new contact")}</>
+      if (contact.info.displayName == "") <>{@intl("Create a new contact")}</>
       else <>{name}</>
 
     // picture = profile_picture(contact, true)
@@ -422,12 +422,12 @@ module ContactView {
 
     add_field =
       (<div class="dropdown">
-        <a data-toggle="dropdown" class="btn btn-default dropdown-toggle">{@i18n("Add field")}</a>
+        <a data-toggle="dropdown" class="btn btn-default dropdown-toggle">{@intl("Add field")}</a>
         <ul class="dropdown-menu">
           <li><a onclick={add_group("email", _)}>{AppText.email()}</a></li>
-          <li><a onclick={add_group("phone", _)}>{@i18n("Phone")}</a></li>
-          <li><a onclick={add_group("address", _)}>{@i18n("Address")}</a></li>
-          <li><a onclick={add_group("company", _)}>{@i18n("Company")}</a></li>
+          <li><a onclick={add_group("phone", _)}>{@intl("Phone")}</a></li>
+          <li><a onclick={add_group("address", _)}>{@intl("Address")}</a></li>
+          <li><a onclick={add_group("company", _)}>{@intl("Company")}</a></li>
         </ul>
       </div>)
     form =
@@ -447,8 +447,8 @@ module ContactView {
           {add_field}
         </div>
         <div class="form-group">
-          {(WB.Button.make({button: <>{@i18n("Save changes")}</>, callback: do_save(contact, options.format, _)}, [{primary}])
-            |> Xhtml.add_attribute_unsafe("data-complete-text", @i18n("Save changes"), _)
+          {(WB.Button.make({button: <>{@intl("Save changes")}</>, callback: do_save(contact, options.format, _)}, [{primary}])
+            |> Xhtml.add_attribute_unsafe("data-complete-text", @intl("Save changes"), _)
             |> Xhtml.add_attribute_unsafe("data-loading-text", AppText.saving(), _)
             |> Xhtml.add_id(some("save_contact_button"), _))
           }

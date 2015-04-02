@@ -196,13 +196,12 @@ function thumbnail() {
     url = HttpRequest.get_url()
     typ = Http.Query.string("resumableType", url)
     identifier = Http.Query.string("resumableIdentifier", url)
-
     match ((identifier, typ)) {
       case ({some: identifier}, {some: typ}):
         match (Option.bind(Parser.try_parse(dataUrl, _), HttpRequest.get_body())) {
           case {some: (_typ, data)}:
             data = Binary.of_base64(data)
-            RawFile.add_thumbnail(RawFile.idofs(identifier), data, typ)
+            RawFile.addThumbnail(RawFile.idofs(identifier), data, typ)
             Http.Json.success({})
           default:
             warning("thumbnail: corrupt body")
@@ -242,7 +241,7 @@ dispatcher = parser {
       case GET   "/upload" ("?" .*)?: Chunk.test()
       case POST  "/upload" ("?" .*)?: Chunk.upload()
       case POST  "/thumbnail" ("?" .*)? : thumbnail()
-      case GET   "/thumbnail/" raw=(.*): FileController.download_thumbnail(Text.to_string(raw))
+      case GET   "/thumbnail/" raw=(.*): FileController.downloadThumbnail(Text.to_string(raw), true)
       case GET   "/avatar/" user=(.*): UserController.downloadAvatar(Text.to_string(user))
       // Main
       case s=(.*) : main(Text.to_string(s))
@@ -252,9 +251,17 @@ dispatcher = parser {
 Resource.register_external_js("/resources/js/jquery-ui-1.9.2.custom.min.js")
 Resource.register_external_js("/resources/js/jquery.tokeninput.js")
 Resource.register_external_js("/resources/js/select2.full.js")
+Resource.register_external_js("/resources/js/intl.min.js")
+Resource.register_external_js("/resources/js/locale-data/ja-JP.js")
+Resource.register_external_js("/resources/js/locale-data/en-US.js")
+Resource.register_external_js("/resources/js/intl-messageformat.min.js")
 Resource.register_external_js(Utils.auto_version("/resources/js/mail.js"))
 Resource.register_external_css("/resources/css/tablesorter.css")
 Resource.register_external_css("/resources/css/select2.min.css")
+
+// Specify locales directory.
+if (not(Intl.includeLocaleDirectory("locales")))
+  Log.warning("[Intl]", "Unable to load locale directory 'locales'")
 
 private server encryption =
   if (AppParameters.parameters.no_ssl) {no_encryption: void}

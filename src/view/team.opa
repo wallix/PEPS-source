@@ -98,20 +98,20 @@ module TeamView {
       case {some: team}:
         html = build_team_panes(state, some(team), super)
         edit_callback({success: html})
-      default: edit_callback(Utils.failure(@i18n("Team Not found"), {wrong_address}))
+      default: edit_callback(Utils.failure(@intl("Team Not found"), {wrong_address}))
     }
   }
 
   /** Team deletion. */
   client function delete(Team.key team, string name, super, _) {
-    if (team != "" && Client.confirm(@i18n("Are you sure you want to delete team '{name}'?")))
+    if (team != "" && Client.confirm(@intl("Are you sure you want to delete team '{name}'?")))
       TeamController.Async.delete(team, function {
         // Client side.
         case {success}:
           refresh(super)
           #team_viewer = <></>
         case ~{failure}:
-          Notifications.error(@i18n("Failed to delete team"), <>{failure.message}</>)
+          Notifications.error(@intl("Failed to delete team"), <>{failure.message}</>)
       })
   }
 
@@ -260,7 +260,7 @@ module TeamView {
       #parent_selection = smallLabel(Team.get(team))
     }
     TeamChooser.create({
-      title: @i18n("Select parent team"),
+      title: @intl("Select parent team"),
       ~action, user: none, excluded: []
     })
   }
@@ -278,7 +278,7 @@ module TeamView {
       match (team) {
         case {none}:
         <div class="form-group">
-          <label class="control-label">{@i18n("Parent team")}</label>
+          <label class="control-label">{@intl("Parent team")}</label>
           <div id=#parent_selection onclick={selectParent}
             data-toggle="context" data-target="#context_menu_content">
               {smallLabel(none)}

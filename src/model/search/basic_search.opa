@@ -27,7 +27,7 @@ BasicSearch = {{
 
   @private
   get_file_name(id: File.id) =
-    File.get_name(id) ? ""
+    File.getName(id) ? ""
 
   @private
   clean_string(str: string) =

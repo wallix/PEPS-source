@@ -52,8 +52,8 @@ module Solr(server_options) {
   private function _check_result(r, uri, to_string) {
     match(r) {
     case {success:{code:200, ~content, ... }} : {success:content};
-    case {success:{~code, ~content, ... }} : {failure:@i18n("server error (code {code}): {to_string(content)}")};
-    case {~failure}: {failure:@i18n("Fatal error connecting to {server_options.domain}:{server_options.port} ({failure})")};
+    case {success:{~code, ~content, ... }} : {failure:@intl("server error (code {code}): {to_string(content)}")};
+    case {~failure}: {failure:@intl("Fatal error connecting to {server_options.domain}:{server_options.port} ({failure})")};
     }
   }
 
@@ -89,21 +89,21 @@ module Solr(server_options) {
   private function get_list(error_hint, r) {
     match (r) {
     case {List:l}: {success:l};
-    default: {failure:@i18n("impossible to retrieve the {error_hint} list")};
+    default: {failure:@intl("impossible to retrieve the {error_hint} list")};
     }
   }
 
   private function get_string(error_hint, r) {
     match (r) {
     case {String:s}: {success:s};
-    default: {failure:@i18n("impossible to retrieve the {error_hint} string")};
+    default: {failure:@intl("impossible to retrieve the {error_hint} string")};
     }
   }
 
   private function get_record(RPC.Json.json r) {
     match (r) {
     case {Record:l}: {success:l};
-    default: {failure:@i18n("unexpected server response")};
+    default: {failure:@intl("unexpected server response")};
     }
   }
 
@@ -112,8 +112,8 @@ module Solr(server_options) {
     case {success:l}:
       match (List.find({ function((name,_)) field_name == name }, l)) {
       case {some:(_,r)}: {success:r};
-      case {none}: {failure:@i18n("Field not found {field_name}")};
-        //error(@i18n("impossible to find the {field_name} field. Defaulting to empty string value."));
+      case {none}: {failure:@intl("Field not found {field_name}")};
+        //error(@intl("impossible to find the {field_name} field. Defaulting to empty string value."));
         //{success:{String:""}};
       }
     case {~failure}: {~failure};
@@ -123,14 +123,14 @@ module Solr(server_options) {
   private function string_list_unserialize(r) {
     match (OpaSerialize.Json.unserialize_unsorted(r)) {
     case {some:list(string) e}: {success:e};
-    default: {failure:@i18n("unexpected server response")};
+    default: {failure:@intl("unexpected server response")};
     }
   }
 
   private function unserialize(json) {
     match (Json.deserialize(json)) {
     case {some:r}: {success:r};
-    case {none}: {failure:@i18n("impossible to deserialized the server response")};
+    case {none}: {failure:@intl("impossible to deserialized the server response")};
     }
   }
 
@@ -302,8 +302,8 @@ module Solr(server_options) {
         case {success:responseHeader}:
           match (get_field("status", responseHeader)) {
           case {success:{Int:0}}: {success};
-          case {success:{Int:status}}: {failure:@i18n("Delete failed, non-zero return status {status}")};
-          case {success:error}: {failure:@i18n("Delete failed, {error}")};
+          case {success:{Int:status}}: {failure:@intl("Delete failed, non-zero return status {status}")};
+          case {success:error}: {failure:@intl("Delete failed, {error}")};
           case {~failure}: {~failure};
           }
         case {~failure}: {~failure};
@@ -315,23 +315,23 @@ module Solr(server_options) {
   }
 
   function query(query, options) {
-    @catch(function (exn) { {failure:@i18n("Querying caught {exn}")} }, _query(query, options))
+    @catch(function (exn) { {failure:@intl("Querying caught {exn}")} }, _query(query, options))
   }
 
   function unhighlighted_query(query, options) {
-    @catch(function (exn) { {failure:@i18n("Unhighlighted querying caught {exn}")} }, _unhighlighted_query(query, options))
+    @catch(function (exn) { {failure:@intl("Unhighlighted querying caught {exn}")} }, _unhighlighted_query(query, options))
   }
 
   function index(doc) {
-    @catch(function (exn) { {failure: @i18n("Indexing caught {exn}")} }, _index(doc))
+    @catch(function (exn) { {failure: @intl("Indexing caught {exn}")} }, _index(doc))
   }
 
   function extract(id, content, mimetype, extra_fields) {
-    @catch(function (exn) { {failure:@i18n("Extracting caught {exn}")} }, _extract(id, content, mimetype, extra_fields))
+    @catch(function (exn) { {failure:@intl("Extracting caught {exn}")} }, _extract(id, content, mimetype, extra_fields))
   }
 
   function delete(fields) {
-    @catch(function (exn) { {failure:@i18n("Deleting caught {exn}")} }, _delete(fields))
+    @catch(function (exn) { {failure:@intl("Deleting caught {exn}")} }, _delete(fields))
   }
 
 }

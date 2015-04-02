@@ -618,7 +618,7 @@ module Contact {
         }
 
         if (wc.webmailContactId == none || wc.webmailContactId == {some: ""})
-          {failure: @i18n("No contact id")}
+          {failure: @intl("No contact id")}
         else
           { success: {
               owner: "", id: wc.webmailContactId ? genid(),
@@ -667,9 +667,9 @@ module Contact {
   }
   function outcome(Ldap.webmailContact, string) to_wcontact(Contact.t contact) {
     if (contact.info.name.familyName == "")
-      {failure:"Ldap.add: {@i18n("Bad contact, no last name")}"}
+      {failure:"Ldap.add: {@intl("Bad contact, no last name")}"}
     else if (contact.info.nickname == "")
-      {failure:"Ldap.add: {@i18n("Bad contact, no nickname")}"}
+      {failure:"Ldap.add: {@intl("Bad contact, no nickname")}"}
     else {
       workAddress = with_kind_uniq("work", contact.info.addresses) ? Contact.empty_contact_address
       homeAddress = with_kind_uniq("home", contact.info.addresses) ? Contact.empty_contact_address

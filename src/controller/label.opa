@@ -59,11 +59,11 @@ module LabelController {
     if (not(allowed))
       {failure: AppText.not_allowed_action()}
     else if (name == "")
-      {failure: @i18n("Please enter a label name")}
+      {failure: @intl("Please enter a label name")}
     else if (previd == {none} && Label.name_exists(name, state.key))
-      {failure: @i18n("The label named [{name}] already exists")}
+      {failure: @intl("The label named [{name}] already exists")}
     else if (String.contains(name, ","))
-      {failure: @i18n("The label name must not contain the character ','")}
+      {failure: @intl("The label name must not contain the character ','")}
     else
       match (previd) {
         case {some: id}:
@@ -86,7 +86,7 @@ module LabelController {
         if (not(Login.is_super_admin(state)) && Label.is_security(label))
           {failure: AppText.not_allowed_action()}
         else if (Label.delete(id)) {success: void}
-        else {failure: @i18n("Error during deletion")}
+        else {failure: @intl("Error during deletion")}
       default: {failure: AppText.Label_not_found()}
     }
   }

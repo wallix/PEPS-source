@@ -102,7 +102,7 @@ module UserView {
             Dom.remove(#passwordmodal)
             callback(some(secretKey))
           default:
-            Notifications.notify("passwordnotify", AppText.password(), <>{@i18n("Invalid password")}</>, {error})
+            Notifications.notify("passwordnotify", AppText.password(), <>{@intl("Invalid password")}</>, {error})
             Dom.clear_value(#passwordinput)
         }
       }
@@ -125,7 +125,7 @@ module UserView {
       ok = WB.Button.make({button: <>{AppText.Ok()}</>, callback: doconfirm}, [{primary}])
       cancel = WB.Button.make({button: <>{AppText.Cancel()}</>, callback: docancel}, [{`default`}])
       modal =
-        Modal.make("passwordmodal", <>{@i18n("Authentication")}</>,
+        Modal.make("passwordmodal", <>{@intl("Authentication")}</>,
           prompt, <>{cancel}{ok}</>,
           {Modal.default_options with backdrop: false, static: false, keyboard: false}
         )
@@ -183,7 +183,7 @@ module UserView {
     case {success: key}:
       Button.reset(#save_user_button)
       refresh(key, {update})
-      Notifications.info(AppText.Update(), <>{@i18n("User updated")}</>)
+      Notifications.info(AppText.Update(), <>{@intl("User updated")}</>)
     case ~{failure}:
       Button.reset(#save_user_button)
       Notifications.error(AppText.Update(), <>{failure.message}</>)
@@ -214,8 +214,8 @@ module UserView {
         Button.reset(#block_button)
         load_user(some(key))
         message =
-          if (block) @i18n("User {username} has been blocked")
-          else @i18n("User {username} has been unblocked")
+          if (block) @intl("User {username} has been blocked")
+          else @intl("User {username} has been unblocked")
         Notifications.info(AppText.Block(), <>{message}</>)
       case ~{failure}:
         Button.reset(#block_button)
@@ -225,30 +225,30 @@ module UserView {
 
   /** Reset the user password. */
   client function reset(User.key key, string username, _evt) {
-    if (Client.confirm(@i18n("Are you sure you want to reset this user password?")))
+    if (Client.confirm(@intl("Are you sure you want to reset this user password?")))
       UserController.Async.reset(key, function {
         // Client side.
-        case {success: newpass}: Notifications.info(@i18n("New Password for {username}"), <>{newpass}</>)
+        case {success: newpass}: Notifications.info(@intl("New Password for {username}"), <>{newpass}</>)
         case ~{failure}: Notifications.error(AppText.reset(), <>{failure.message}</>)
       })
   }
 
   /** Delete a user from the list. */
   client function delete(User.key key, string username, _evt) {
-    if (Client.confirm(@i18n("Are you sure you want to delete this user?")))
+    if (Client.confirm(@intl("Are you sure you want to delete this user?")))
       UserController.Async.delete(key, function {
         // Client side.
         case {success}:
           refresh(key, {delete})
-          Notifications.info(@i18n("Deleted user {username}"), <>{AppText.Ok()}</>)
-        case ~{failure}: Notifications.error(@i18n("Delete user {username}"), <>{failure.message}</>)
+          Notifications.info(@intl("Deleted user {username}"), <>{AppText.Ok()}</>)
+        case ~{failure}: Notifications.error(@intl("Delete user {username}"), <>{failure.message}</>)
       })
   }
 
   /** Remove the user from a team. Triggered by clicking on the X button on team labels. */
   client function removeTeam(User.t user, Team.t team, string id, Dom.event _evt) {
     if (List.mem(team.key, user.teams)
-      && Client.confirm(@i18n("Remove user {user.username} from team '{team.name}'?")))
+      && Client.confirm(@intl("Remove user {user.username} from team '{team.name}'?")))
       UserController.Async.update_teams(user.key, {removed_teams: [team.key], added_teams:[]}, function {
         case {success: teams}: saveCallback({success: user.key})
         case ~{failure}: saveCallback(~{failure})
@@ -266,7 +266,7 @@ module UserView {
         })
     }
     TeamChooser.create(~{
-      title: @i18n("Add team to {user.username}"),
+      title: @intl("Add team to {user.username}"),
       action, excluded: user.teams, user: none
     })
   }
@@ -350,22 +350,22 @@ module UserView {
             data-loading-text="{AppText.Blocking()}">
           <i class="fa fa-lock-o"/> {blockText}</a>
         <a id="reset_button" class="btn btn-sm btn-default" onclick={reset(user.key, user.username, _)}>
-          <i class="fa fa-refresh"/> {@i18n("Reset password")}</a>
+          <i class="fa fa-refresh"/> {@intl("Reset password")}</a>
         <a id="delete_button" class="btn btn-sm btn-default" onclick={delete(user.key, user.username, _)}
             data-loading-text="{AppText.Deleting()}" data-complete-text="{AppText.delete()}">
           <i class="fa fa-trash-o"/> {AppText.delete()}</a>
       </div>
     level =
       Form.line({ Form.Default.line with
-        label: @i18n("Clearance Level"), id: "user_level",
+        label: @intl("Clearance Level"), id: "user_level",
         typ: "number", value: "{user.level}"
       })
     save =
       WB.Button.make({
-        button: <>{@i18n("Save changes")}</>,
+        button: <>{@intl("Save changes")}</>,
         callback: save(user.key, user.username, _)
       }, [{primary}]) |>
-      Xhtml.add_attribute_unsafe("data-complete-text", @i18n("Save changes"), _) |>
+      Xhtml.add_attribute_unsafe("data-complete-text", @intl("Save changes"), _) |>
       Xhtml.add_attribute_unsafe("data-loading-text", AppText.saving(), _) |>
       Xhtml.add_id(some("save_user_button"), _)
     form =
@@ -568,7 +568,7 @@ module UserView {
           header =
             <div class="pane-heading" onready={function (_) { load_user(some(user)) }}>
               <h3>
-                {AppText.search()} : {page.size} {@i18n("results for")} <small class="page_num">{query}</small>
+                {@intl("{AppText.search()} : {page.size, number} results for")} <small class="page_num">{query}</small>
               </h3>
             </div>
           header <+> <ul class="list-group">{elts}</ul>
@@ -581,7 +581,7 @@ module UserView {
           header =
             <div class="pane-heading">
               <h3>
-                {AppText.users()} <small class="page_num">{@i18n("about {usercount} results")}</small>
+                {AppText.users()} <small class="page_num">{@intl("about {usercount, number} results")}</small>
               </h3>
             </div>
           html = header <+> <ul id="users_list_items" class="list-group" onscroll={scroll(ref, filter, _)}>{elts}</ul>

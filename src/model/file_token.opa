@@ -23,18 +23,12 @@ package com.mlstate.webmail.model
  * File tokens give access to shared files. The most basic token
  * is the one owned by the owner of the file: it gives admin rights.
  * Access rights can be:
- *   - admin: can read and modify the file, as well as select the published version.
- *   - write: can modify the file locally, writes are decided by the owner.
- *   - read: can only read the published version.
+ *   - admin: can read, modify, and share the file.
+ *   - write: can modify the file.
+ *   - read: read only.
  */
 
 abstract type FileToken.id = DbUtils.oid
-
-/** User access rights. */
-type File.access =
-  {admin} or     // Full access.
-  {read} or      // Prevent modifications.
-  {write}        // Modifications subject to owner's authorization.
 
 /** Origin of the file. */
 type File.origin =
@@ -68,7 +62,7 @@ type FileToken.t = {
   User.key owner,            // Owner of the token.
   File.name name,            // File name: the same as the active version.
   // Versioning.
-  File.origin origin,        // Source file.
+  File.origin origin,        // Source of the token.
   File.id file,              // The file the token gives access to.
   RawFile.id active,         // The file active version.
   File.access access,        // User access rights.
@@ -81,7 +75,7 @@ type FileToken.t = {
   Date.date created,         // Upload date.
   Date.date edited,          // Edition date == last version change.
   option(Date.date) deleted, // File deleted.
-  // Imported from the active version.
+  // Imported from the active version (which should be the file's published version).
   int size, string mimetype,
   option(RawFile.thumbnail) thumbnail
 }
@@ -103,6 +97,7 @@ type FileToken.query = {
   {RawFile.id active} query
 }
 
+/** Search filter. */
 type FileToken.filter = {
   string name      // Empty == unconstrained.
 }
@@ -128,42 +123,16 @@ module FileToken {
   both emptyFilter = {name: ""}
   both function FileToken.filter parseFilter(string value) { {name: value} }
 
-  module Access {
-    /** Check whether a0 >> a1. */
-    function imply(File.access a0, File.access a1) {
-      pair = (a0, a1)
-      match (pair) {
-        case ({admin}, _): true
-        case (_, {admin}): false
-        case ({write}, _): true
-        case (_, {write}): false
-        case ({read}, {read}): true
-      }
-    }
-
-    /** Return the highest access rights of the two. */
-    function max(File.access a0, File.access a1) {
-      pair = (a0, a1)
-      match (pair) {
-        case ({admin}, _)
-        case (_, {admin}): {admin}
-        case ({write}, _)
-        case (_, {write}): {write}
-        default: {read}
-      }
-    }
-  } // END ACCESS
-
   /** Add appropriate journal logs for a token action. */
   function journallog(FileToken.t token, evt) {
     thumbnail = if (token.thumbnail == none) none else some(token.active)
     owner = token.owner
     // if (Team.key_exists(owner))
-      Journal.Main.log(
-        "", [owner],
-        ~{ evt, token: token.id, file: token.active, name: token.name.fullname,
-           size: token.size, mimetype: token.mimetype, thumbnail: token.thumbnail != none}
-      ) |> ignore
+    Journal.Main.log(
+      "", [owner],
+      ~{ evt, token: token.id, file: token.active, name: token.name.fullname,
+         size: token.size, mimetype: token.mimetype, thumbnail: token.thumbnail != none }
+    ) |> ignore
     // else void
       // TODO add file logs.
       // Journal.File.log(owner, ..)
@@ -172,11 +141,12 @@ module FileToken {
   /**
    * Extract the metadata of the token's active version _ which is stored for
    * efficiency in the token (except for the raw file encryption).
+   * NB: the owner is NOT correct in the returned metadata.
    */
   both function RawFile.metadata metadata(FileToken.t token) {
     { id: token.active, created: token.edited, name: token.name.fullname,
       thumbnail: token.thumbnail, size: token.size, mimetype: token.mimetype,
-      encryption: token.encryption }
+      encryption: token.encryption, owner: token.owner, file: token.file }
   }
 
   /** Create a file snippet by adding content highlightings. */
@@ -247,7 +217,7 @@ module FileToken {
    */
   function make(User.key owner, origin, file, raw, access, dir, hidden, encryption) {
     id = DbUtils.OID.gen()
-    security = File.get_security(file) ? Label.open.id
+    security = File.getClass(file) ? Label.open.id
     filename = filename(none, owner, raw.name, dir)
    ~{ id, owner, origin, name: filename,
       file, active: raw.id, access, link: none,
@@ -287,7 +257,7 @@ module FileToken {
   function get(FileToken.id id) { DbUtils.option(/webmail/filetokens[id == id and deleted == none]) }
   function get_active(FileToken.id id) { DbUtils.option(/webmail/filetokens[id == id and deleted == none]/active) }
   function get_owner(FileToken.id id) { DbUtils.option(/webmail/filetokens[id == id and deleted == none]/owner) }
-  function get_file(FileToken.id id) { DbUtils.option(/webmail/filetokens[id == id and deleted == none]/file) }
+  function getFile(FileToken.id id) { DbUtils.option(/webmail/filetokens[id == id and deleted == none]/file) }
   function get_security(FileToken.id id) { DbUtils.option(/webmail/filetokens[id == id and deleted == none]/security) }
   function get_dir(FileToken.id id) { DbUtils.option(/webmail/filetokens[id == id and deleted == none]/dir) |> Option.bind(identity, _) }
   function get_access(FileToken.id id) { ?/webmail/filetokens[id == id]/access ? {read} }
@@ -476,29 +446,29 @@ module FileToken {
     })
   }
 
-  /** File renaming. No new version is produced, and only the token may be modified. */
-  function rename(FileToken.id id, newname) {
-    match (get(id)) {
-      case {some: token}:
-        if (newname == token.name.fullname) newname
-        else {
-          name = filename({some: token.id}, token.owner, newname, token.dir)
-          /webmail/filetokens[id == token.id] <- ~{name}
-          name.fullname
-        }
+  /**
+   * File renaming. No new version is produced. Instead, the published version is renamed
+   * and changes are propagated to sibling tokens.
+   */
+  function rename(FileToken.id id, string newname) {
+    log("rename: id={id} newname={newname}")
+    match (getFile(id)) {
+      case {some: file}:
+        File.rename(file, newname)
+        ?/webmail/filetokens[id == id]/name/fullname ? newname
       default: newname
     }
   }
 
   /**
-   * Set the security label of a file.
-   * Both the file and the filetoken are modified, and modifications are propagated to
-   * sibling tokens (this is ensured by the function {File.update_security}).
+   * Set the security label of a file. Both the file and the filetoken are modified,
+   * and modifications are propagated to sibling tokens (this is ensured by the function {File.setClass}).
+   *
    * @return true iff the operation was succesful.
    */
   function set_security(FileToken.id id, Label.id security) {
-    match (get_file(id)) {
-      case {some: file}: File.update_security(file, security) // Propagates the modification to sibling tokens, including the present one.
+    match (getFile(id)) {
+      case {some: file}: File.setClass(file, security) // Propagates the modification to sibling tokens, including the present one.
       default: false
     }
   }
@@ -549,8 +519,8 @@ module FileToken {
    * @param raw new version.
    * @return true if the update was successful.
    */
-  private function update(FileToken.t token, raw) {
-    if (token.active == raw.id) true
+  function update(FileToken.t token, raw) {
+    if (token.active == raw.id && token.name.fullname == raw.name) true
     else
       @catch(Utils.const(false), {
         filename = filename({some: token.id}, token.owner, raw.name, token.dir)
@@ -560,45 +530,6 @@ module FileToken {
         }
         true
       })
-  }
-
-  /** Publish the active version of the token to the file. */
-  function publish(FileToken.id id) {
-    match (get(id)) {
-      case {some: token}: File.publish(token.file, token.active) |> ignore
-      default: void
-    }
-  }
-
-  /**
-   * Set the active version to the published version of the file.
-   * This causes the token to be updated with the metadata of the published version.
-   * @return true iff the sync was successful.
-   */
-  function sync(FileToken.id id) {
-    match (get(id)) {
-      case {some: token}:
-        match (File.get_raw_metadata(token.file)) {
-          case {some: pub}: update(token, pub)
-          default: false
-        }
-      default: false
-    }
-  }
-
-  /**
-   * Synchronise all tokens pointing to the given file.
-   * @return true if the update was successful for all tokens.
-   */
-  function syncall(File.id id) {
-    match (File.get_raw_metadata(id)) {
-      case {some: pub}:
-        DbSet.iterator(/webmail/filetokens[file == id]) |>
-        Iter.fold(function (token, suc) {
-          update(token, pub) && suc
-        }, _, true)
-      default: false
-    }
   }
 
   /**
@@ -675,7 +606,7 @@ module FileToken {
     log("shareWith: copy {src} for {sharees}")
     match (get(src)) {
       case {some: token}:
-        raw = File.get_raw_metadata(token.file) ? metadata(token)
+        raw = File.getMetadata(token.file) ? metadata(token)
         outcome = List.fold(function (sharee, outcome) {
           match (outcome.status) {
             case ~{failure}: outcome
@@ -699,7 +630,7 @@ module FileToken {
                   msg = AppText.non_existent_folder(dst)
                   files = String.concat(", ", List.map(_.f1, outcome.copies))
                   msg =
-                    if (List.length(outcome.copies) > 0) msg ^ " ({@i18n("succeeded for")} {files}"
+                    if (List.length(outcome.copies) > 0) msg ^ " ({@intl("succeeded for {files}")})"
                     else msg
                   {outcome with status: Utils.failure(msg, {internal_server_error})}
               }

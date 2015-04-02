@@ -114,7 +114,7 @@ module DirectoryController {
               log("move: share the content of '{origin.name}' with user '{parent.owner}' with access {parent.access}")
               access = parent.access
               clone = match (origin.clone) {
-                case {some: id}: {dir: id, access: FileToken.Access.max(origin.access, access)}
+                case {some: id}: {dir: id, access: File.Access.max(origin.access, access)}
                 default: {dir: origin.id, ~access}
               }
               // Search for pre-existing clones.

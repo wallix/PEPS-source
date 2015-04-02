@@ -64,14 +64,14 @@ module Table {
     match (column) {
       case {name: _}: {xhtml: <>{AppText.name()}</>}
       case {created}: {xhtml: <>{AppText.created()}</>}
-      case {edited}: {xhtml: <>{@i18n("Edited")}</>}
+      case {edited}: {xhtml: <>{@intl("Edited")}</>}
       case {owner: _}: {xhtml: <>{AppText.owner()}</>}
       case {origin}: {xhtml: <>{AppText.shared_by()}</>}
       case {size}:
         { xhtml: <>{AppText.size()}</>,
           decorator: Xhtml.add_attribute_unsafe("data-sorter", "size", _) }
       case {mimetype}: {xhtml: <>{AppText.kind()}</>}
-      case {class}: {xhtml: <>{@i18n("Class")}</>}
+      case {class}: {xhtml: <>{@intl("Class")}</>}
       case {checkbox: onclick}: {xhtml: <></>}
       case {link}: {xhtml: <>{AppText.link()}</>}
     }

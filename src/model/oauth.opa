@@ -218,7 +218,7 @@ module Oauth {
               ("oauth_token_secret", oauth_token_secret),
               ("oauth_callback_confirmed", "true") ] }
         } else
-          {failure: @i18n("Invalid signature")}
+          {failure: @intl("Invalid signature")}
       // Known consumer.
       case {some: oauth_consumer_key}:
         match (Consumer.get(oauth_consumer_key)) {
@@ -239,11 +239,11 @@ module Oauth {
                     ("oauth_token_secret",oauth_token_secret),
                     ("oauth_callback_confirmed","true") ] }
               } else
-                {failure: @i18n("App provider does not match callback: {consumer.url} != {oauth_callback}")}
+                {failure: @intl("App provider does not match callback: {consumer.url} != {oauth_callback}")}
             } else
-              {failure: @i18n("Invalid signature")}
+              {failure: @intl("Invalid signature")}
           // Undefined consumer.
-          default: {failure: @i18n("Unknown consumer")}
+          default: {failure: @intl("Unknown consumer")}
         }
     }
   }
@@ -296,11 +296,11 @@ module Oauth {
             {success:[("oauth_token",oauth_token), ("oauth_token_secret",oauth_token_secret)]}
           }else {
             warning("OAuth.get_access_token: invalid token verifier: oauth_token={oauth_token}")
-            {failure:@i18n("Authentication failure")}
+            {failure:@intl("Authentication failure")}
           }
         }else
-          {failure:@i18n("Authentication failure")}
-      default: {failure:@i18n("Invalid token")}
+          {failure:@intl("Authentication failure")}
+      default: {failure:@intl("Invalid token")}
     }
   }
 
@@ -312,8 +312,8 @@ module Oauth {
       case {some:token}:
         if (valid_sign(oauth_consumer_secret, token.oauth_token_secret, method, uri, params))
           {success: void}
-        else {failure: @i18n("Invalid signature")}
-      default: {failure: @i18n("Invalid token")}
+        else {failure: @intl("Invalid signature")}
+      default: {failure: @intl("Invalid token")}
     }
   }
 

@@ -91,13 +91,37 @@ module Notifications {
         if (donotify)
           HTML5_Notifications.simple(
             AppText.new_mails_title(),
-            @i18n("{count} new mails in your Inbox"),
+            @intl("{count, number} new mails in your Inbox"),
             some("/favicon.ico")
           )
         // Update reference.
         if (doupdate)
           ClientReference.set(globalBadges, StringMap.add(mode, count, badges))
       }
+    }
+
+    /**
+     * Increment the global badge and propagate the update to the view.
+     * Note: the badge level is incremented only if the mode is not active.
+     */
+    function increment(Mode.t mode) {
+      if (not(Mode.isActive(mode))) {
+        badges = ClientReference.get(globalBadges)
+        mode = Mode.class(mode)
+        count = StringMap.get(mode, badges) ? 0
+        count = count+1
+        ClientReference.set(globalBadges, StringMap.add(mode, count, badges))
+        insertone({id: "{mode}_badge", level: count, importance: {important}})
+      }
+    }
+
+    /** Reset the global badge associated with a mode. */
+    function reset(Mode.t mode) {
+      Log.notice("[Notifications]", "Resetting global badge for {mode}")
+      badges = ClientReference.get(globalBadges)
+      mode = Mode.class(mode)
+      ClientReference.set(globalBadges, StringMap.remove(mode, badges))
+      #{"{mode}_badge"} = <></>
     }
 
   } // END BADGE
@@ -121,14 +145,14 @@ module Notifications {
       case {received: mid}:
         if (Mode.equiv(URN.get().mode, {messages: {inbox}}))
           MessageView.Message.load(mid)
+      // Increment the badge level.
+      case {increment: mode}: Badge.increment(mode)
       // Load received badges into the view.
-      case ~{badges}:
-        log("handler: received badges")
-        Badge.insert(badges)
+      case ~{badges}: Badge.insert(badges)
       // Update the progress bar located in the sidebar.
       case {fetching: (name, percent)}:
        #progress_bar =
-        <div class="progress progress-info progress-striped active" title="{@i18n("Fetching {name} mails...")}">
+        <div class="progress progress-info progress-striped active" title="{@intl("Fetching {name, number} mails...")}">
           <div class="bar" style={[Css_build.width(~{ percent })]}/>
         </div>
       case {fetched}:

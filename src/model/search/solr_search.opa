@@ -131,7 +131,7 @@ module Search {
     private function index2(key, Message.header header, list(User.key) owners, string content) {
       log("Message: indexing message [{header.id}]")
       iom = indexable(key, header, owners, content)
-      // case {none}: {success:@i18n("message {message.id} did not need to be indexed")};
+      // case {none}: {success:@intl("message {message.id} did not need to be indexed")};
       match (SolrMessage.index(iom)) {
         case ~{success}: ~{success}
         case ~{failure}:
@@ -208,7 +208,7 @@ module Search {
             (i+1, current)
           }, @toplevel.Message.all(), (1,1)) |> ignore
       case {~failure}:
-        error("Message.reindex: {@i18n("failed to remove Solr index")} {failure}");
+        error("Message.reindex: {@intl("failed to remove Solr index")} {failure}");
       }
     }
 
@@ -301,7 +301,7 @@ module Search {
               match (field) {
                 case "content":
                   // TODO: this is for testing purpose (it will be properly done with postgres joins)
-                  filename = @toplevel.File.get_name(fid) ? "mongo.pdf"
+                  filename = @toplevel.File.getName(fid) ? "mongo.pdf"
                   ["<strong>{filename}</strong>{render(value)}" | highlights]
                 default: highlights
               }
@@ -376,7 +376,7 @@ module Search {
           (i+1, current)
         }, @toplevel.User.iterator(), (1, 1)) |> ignore
       case ~{failure}:
-        error("User.reindex: {@i18n("failed to remove Solr user")} {failure}");
+        error("User.reindex: {@intl("failed to remove Solr user")} {failure}");
     }
   }
 
@@ -494,12 +494,12 @@ module Search {
                 if (current != previous) progress(current)
                 (i+1, current)
               case {none}:
-                error(@i18n("File.reextract: missing file {file.published}"))
+                error(@intl("File.reextract: missing file {file.published}"))
                 (i+1, previous)
             }
           }, @toplevel.File.iterator(), (1, 1)) |> ignore
         case ~{failure}:
-          error("File.reextract: {@i18n("failed to remove Solr index")} {failure}")
+          error("File.reextract: {@intl("failed to remove Solr index")} {failure}")
       }
     }
 
@@ -665,7 +665,7 @@ module Search {
           }, contacts, (1, 1, void)).f3
 
         case ~{failure}:
-          error("Contact.reindex: {@i18n("failed to remove Solr contact")} {failure}")
+          error("Contact.reindex: {@intl("failed to remove Solr contact")} {failure}")
       }
     }
 

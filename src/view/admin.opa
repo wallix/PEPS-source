@@ -32,13 +32,13 @@ AdminView = {{
     level = AppConfig.default_level // FIXME
     teams = [] // FIXME
     if (check_password != password) then
-      Notifications.error(@i18n("Registration"), <>{@i18n("Passwords do not match.")}</>)
+      Notifications.error(@intl("Registration"), <>{@intl("Passwords do not match.")}</>)
     else
       AdminController.Async.register(fname, lname, username, password, level, teams,
         // Client side.
-        | ~{failure} -> Notifications.error(@i18n("Registration Failed"), <>{failure.message}</>)
+        | ~{failure} -> Notifications.error(@intl("Registration Failed"), <>{failure.message}</>)
         | {success= (admin, user)} ->
-          do Notifications.success(@i18n("Registration Successful"), <>{@i18n("Congratulations.")}</>)
+          do Notifications.success(@intl("Registration Successful"), <>{@intl("Congratulations.")}</>)
           match (callback) with
           | {some= callback} -> callback(user)
           | {none} ->
@@ -59,16 +59,16 @@ AdminView = {{
           <div class="pane-heading">
             <h3>{AppText.register_new_account()}</h3>
           </div> <+>
-          Form.line({Form.Default.line with label=@i18n("First name"); id="register_first_name"}) <+>
-          Form.line({Form.Default.line with label=@i18n("Last name"); id="register_last_name"}) <+>
-          Form.label(@i18n("Username (definitive)"), "register_username",
+          Form.line({Form.Default.line with label=@intl("First name"); id="register_first_name"}) <+>
+          Form.line({Form.Default.line with label=@intl("Last name"); id="register_last_name"}) <+>
+          Form.label(@intl("Username (definitive)"), "register_username",
             <div class="input-group">
               <input id="register_username"
                   class="form-control" type="text"
                   required="required"></input><span class="input-group-addon">@{domain}</span>
             </div>) <+>
           Form.line({Form.Default.line with label=AppText.password(); id="register_password"; typ="password"; required=true}) <+>
-          Form.line({Form.Default.line with label=@i18n("Repeat"); id="check_password"; typ="password"; required=true}) <+>
+          Form.line({Form.Default.line with label=@intl("Repeat"); id="check_password"; typ="password"; required=true}) <+>
           <div class="form-group">{
             WB.Button.make({button=<>{AppText.register()}</> callback=do_register(callback, _)}, [{primary}])
          }</div>
@@ -101,11 +101,11 @@ AdminView = {{
             do TopbarView.setLogo(logo)
             Notifications.success(
               AppText.settings(),
-              <>{@i18n("Timeout {timeout} minutes, Grace period {grace_period} seconds, Domain {domain}")}</>
+              <>{@intl("Timeout {timeout} minutes, Grace period {grace_period} seconds, Domain {domain}")}</>
             )
           | {failure= err} -> Notifications.error(AppText.settings(), <>{err}</>)
         )
-      | _ -> Notifications.error(AppText.settings(), <>{@i18n("Invalid timeout or grace period")}</>)
+      | _ -> Notifications.error(AppText.settings(), <>{@intl("Invalid timeout or grace period")}</>)
       end
 
     @server_private
@@ -120,11 +120,11 @@ AdminView = {{
         Utils.panel_body(
           <form role="form">
             <div class="form-group">
-              <label>{@i18n("Version")}</label>
+              <label>{@intl("Version")}</label>
               <p class="form-control-static">{peps_tag}</p>
             </div>
             <div class="form-group">
-              <label>{@i18n("Hash")}</label>
+              <label>{@intl("Hash")}</label>
               <p class="form-control-static">{peps_version}</p>
             </div>
           </form>
@@ -134,14 +134,14 @@ AdminView = {{
         Utils.panel_heading(AppText.settings()) <+>
         Utils.panel_body(
           Form.wrapper(
-            Form.line({Form.Default.line with label=@i18n("Logo name"); id="logo_name"; value=logo_name}) <+>
-            Form.line({Form.Default.line with label=@i18n("Domain name"); id="domain_name"; value=domain_name}) <+>
+            Form.line({Form.Default.line with label=@intl("Logo name"); id="logo_name"; value=logo_name}) <+>
+            Form.line({Form.Default.line with label=@intl("Domain name"); id="domain_name"; value=domain_name}) <+>
             Form.label(
-              @i18n("Disconnection timeout (in minutes)"), "disconnection_timeout",
+              @intl("Disconnection timeout (in minutes)"), "disconnection_timeout",
               <input class="form-control" type="number" id=#disconnection_timeout value="{timeout}" min="10"></input>
             ) <+>
             Form.label(
-              @i18n("Disconnection grace period (in seconds)"), "disconnection_grace_period",
+              @intl("Disconnection grace period (in seconds)"), "disconnection_grace_period",
               <input class="form-control" type="number" id=#disconnection_grace_period value="{grace_period}" min="10"></input>
             ) <+>
             <>
@@ -151,7 +151,7 @@ AdminView = {{
                   { if register_enabled
                     then <input type="checkbox" id=#only_admin_can_register checked="checked"/>
                     else <input type="checkbox" id=#only_admin_can_register/>
-                  } {@i18n("Only admin can register users")}
+                  } {@intl("Only admin can register users")}
                 </label>
               </div>
             </div>
@@ -207,8 +207,8 @@ AdminView = {{
       if name != "" && valid_http(url)
       then AdminController.App.create(name, url, display, callback)
       else if name == ""
-      then callback({failure=@i18n("Please enter the application's name")})
-      else callback({failure=@i18n("Link is not a valid HTTP address")})
+      then callback({failure=@intl("Please enter the application's name")})
+      else callback({failure=@intl("Link is not a valid HTTP address")})
 
     /** App deletion. */
     @client delete(key, _evt) =
@@ -258,9 +258,9 @@ AdminView = {{
       display =
         Radio.list([
           { id= "display_fullscreen" value= "fullscreen"
-            text= <>{@i18n("Fullscreen")}</> checked= true onclick= none },
+            text= <>{@intl("Fullscreen")}</> checked= true onclick= none },
           { id= "display_sidebar" value= "sidebar"
-            text= <>{@i18n("Sidebar")}</> checked= false onclick= none }
+            text= <>{@intl("Sidebar")}</> checked= false onclick= none }
         ])
 
       <div id="apps_panel">
@@ -333,7 +333,7 @@ AdminView = {{
         | [first, last, user, pass, level | teams] ->
           level = Parser.int(level) ? 1
           ((first, last, user, pass, level, teams) +> valid, errors)
-        | _ -> (valid, errors <+> <div class="alert alert-warning">{@i18n("Missing field at line {i}")}</div>)
+        | _ -> (valid, errors <+> <div class="alert alert-warning">{@intl("Missing field at line {i}")}</div>)
       , lines, ([], <></>))
       do #bulk_parse_errors <- errors
       AdminController.register_list(valid,
@@ -347,14 +347,14 @@ AdminView = {{
     @server_private
     build(state) =
       Utils.panel_default(
-        Utils.panel_heading(@i18n("Bulk import")) <+>
+        Utils.panel_heading(@intl("Bulk import")) <+>
         Utils.panel_body(
           <div id="bulk_parse_errors"></div>
           <div id="bulk_controller_errors"></div>
           <form role="form">
             <div class="form-group">
-              <p class="form-control-static">{@i18n("The passwords are optional, and will be automatically generated if needed.")}</p>
-              <label>{@i18n("First name; Last name; Username; Password; Level; [Team1; Team2; ...]")}</label>
+              <p class="form-control-static">{@intl("The passwords are optional, and will be automatically generated if needed.")}</p>
+              <label>{@intl("First name; Last name; Username; Password; Level; [Team1; Team2; ...]")}</label>
               <textarea id=#bulk_accounts rows="10" cols="80" class="form-control">
               </textarea>
             </div>
@@ -416,19 +416,19 @@ AdminView = {{
     actions(kind, title: string, name: string) =
       reindex =
         WB.Button.make({
-          button= <><span class="fa fa-repeat-circle-o"></span> {@i18n("Reindex")}</>
+          button= <><span class="fa fa-repeat-circle-o"></span> {@intl("Reindex")}</>
           callback= reindex(kind, "reindex-{name}",_)
         }, [{default}]) |>
-        Xhtml.add_attribute_unsafe("data-complete-text", @i18n("Reindex"), _) |>
-        Xhtml.add_attribute_unsafe("data-loading-text", @i18n("Indexing..."), _) |>
+        Xhtml.add_attribute_unsafe("data-complete-text", @intl("Reindex"), _) |>
+        Xhtml.add_attribute_unsafe("data-loading-text", @intl("Indexing..."), _) |>
         Xhtml.add_id(some("reindex-{name}"), _)
       clear =
         WB.Button.make({
-          button= <><span class="fa fa-trash-o"></span> {@i18n("Delete index")}</>
+          button= <><span class="fa fa-trash-o"></span> {@intl("Delete index")}</>
           callback= clear(kind, "delete-{name}",_)
         }, [{default}]) |>
-        Xhtml.add_attribute_unsafe("data-complete-text", @i18n("Delete index"), _) |>
-        Xhtml.add_attribute_unsafe("data-loading-text", @i18n("Deleting index..."), _) |>
+        Xhtml.add_attribute_unsafe("data-complete-text", @intl("Delete index"), _) |>
+        Xhtml.add_attribute_unsafe("data-loading-text", @intl("Deleting index..."), _) |>
         Xhtml.add_id(some("delete-{name}"), _)
     // Actions line.
     <div class="form-group">
@@ -474,7 +474,7 @@ AdminView = {{
     match (mode) with
     | "classification" ->
       [{
-        text= @i18n("New class")
+        text= @intl("New class")
         action= LabelView.create(true, _)
         id= SidebarView.action_id
       }]
@@ -492,9 +492,9 @@ AdminView = {{
           [ action(mode),
             [
               { name="settings"  id="settings" icon="gear-o"          title = AppText.settings()      onclick = onclick("settings") },
-              { name="classes"   id="classes"  icon="tags-o"          title = @i18n("Classes")        onclick = onclick("classification") },
+              { name="classes"   id="classes"  icon="tags-o"          title = @intl("Classes")        onclick = onclick("classification") },
               { name="indexing"  id="indexing" icon="repeat-circle-o" title = AppText.Indexing()      onclick = onclick("indexing") },
-              { name="bulk"      id="bulk"     icon="users-o"         title = @i18n("Bulk accounts")  onclick = onclick("bulk") },
+              { name="bulk"      id="bulk"     icon="users-o"         title = @intl("Bulk accounts")  onclick = onclick("bulk") },
               { name="apps"      id="apps"     icon="cube"            title = AppText.Apps()          onclick = onclick("apps") }
             ]
           ]

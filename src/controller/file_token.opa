@@ -113,7 +113,7 @@ module FileTokenController {
           function (clones) {
             log("move: share file {token.file} with clones of directory {dir}")
             // Access metadata and encryption of the raw file.
-            match (RawFile.get_metadata(token.active)) {
+            match (RawFile.getMetadata(token.active)) {
               case {some: raw}:
                 (copies, encrypted) = match ((token.encryption, raw.encryption)) {
                   case ({key: fileSecretKey, ~nonce}, {key: filePublicKey ...}):
@@ -166,33 +166,6 @@ module FileTokenController {
       default: void
     }
     FileToken.delete(tid) |> ignore
-  }
-
-  /**
-   * Publish the current version of a file token:
-   *  the pusblished version of the file becomes the active version of the token.
-   */
-  protected function publish(Login.state state, FileToken.id tid) {
-    ownership = FSController.ownership(state.key, {lambda})
-    clearance = FSController.clearance({write})
-    match (FSController.checkAccess({file: tid}, ownership, clearance)) {
-      case {success: resource}:
-        FileToken.publish(tid) |> ignore
-        {success}
-      case ~{failure}: ~{failure}
-    }
-  }
-
-  /** Update the file to the published version. */
-  protected function sync(Login.state state, FileToken.id tid) {
-    ownership = FSController.ownership(state.key, {lambda})
-    clearance = FSController.clearance({read})
-    match (FSController.checkAccess({file: tid}, ownership, clearance)) {
-      case {success: _resource}:
-        FileToken.sync(tid) |> ignore
-        {success: FileToken.get_dir(tid)}
-      case ~{failure}: ~{failure}
-    }
   }
 
   /**
@@ -269,16 +242,16 @@ module FileTokenController {
       else method(state)
     }
 
-    exposed function publish(FileToken.id tid) { expose(FileTokenController.publish(_, tid)) }
-    exposed function sync(FileToken.id tid) { expose(FileTokenController.sync(_, tid)) }
+    // exposed function publish(FileToken.id tid) { expose(FileTokenController.publish(_, tid)) }
+    // exposed function sync(FileToken.id tid) { expose(FileTokenController.sync(_, tid)) }
     exposed function getChunks(FileToken.id tid) { expose(FileTokenController.getChunks(_, tid)) }
   } // END EXPOSE
 
   /** {1} Asynchronous functions. */
 
   module Async {
-    @async @expand function publish(tid, ('a -> void) callback) { FileTokenController.Expose.publish(tid) |> callback }
-    @async @expand function sync(tid, ('a -> void) callback) { FileTokenController.Expose.sync(tid) |> callback }
+    // @async @expand function publish(tid, ('a -> void) callback) { FileTokenController.Expose.publish(tid) |> callback }
+    // @async @expand function sync(tid, ('a -> void) callback) { FileTokenController.Expose.sync(tid) |> callback }
     @async @expand function reencrypt(parameters, ('a -> void) callback) { FileTokenController.reencrypt(parameters) |> callback }
     @async @expand function open(id, ('a -> void) callback) { FileTokenController.open(id) |> callback }
     @async @expand function getChunks(id, ('a -> void) callback) { FileTokenController.Expose.getChunks(id) |> callback }
@@ -288,8 +261,11 @@ module FileTokenController {
 
   module Api {
 
-    /** Upload a file to the given path. */
-    function upload(binary data, string mimetype, Label.id class, Path.t path) {
+    /**
+     * Upload a file to the given path.
+     * @param overwrite if true, the file will be upload as a new file version (if the file already is pre-existant).
+     */
+    function upload(binary data, string mimetype, Label.id class, Path.t path, bool overwrite) {
       match (List.rev(path)) {
         case [filename|path]:
           state = Login.get_state()
@@ -297,9 +273,19 @@ module FileTokenController {
           else {
             path = List.rev(path)
             dir = Directory.create_from_path(state.key, path)
-            file = File.create(state.key, filename, mimetype, data, class)
-            token = FileToken.create(state.key, {upload}, file.file.id, file.raw, {admin}, dir, false, {none}, false)
-            {success: token}
+            query = {query: {name: filename}, location: ~{dir}, teams: false}
+            match (FileToken.find(state.key, query)) {
+              case {some: token}:
+                if (overwrite) {
+                  File.modify(token.file, data, mimetype, filename, state.key) |> ignore
+                  {success: token}
+                } else
+                  Utils.failure("A file already exists at this path", {forbidden})
+              default:
+                file = File.create(state.key, filename, mimetype, data, class)
+                token = FileToken.create(state.key, {upload}, file.file.id, file.raw, {admin}, dir, false, {none}, false)
+                {success: token}
+            }
           }
         default: Utils.failure("Empty path", {bad_request})
       }

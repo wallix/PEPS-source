@@ -43,11 +43,11 @@ module AdminController {
     else if (Admin.only_admin_can_register() && not(check_clearance(state, level)))
       Utils.failure(AppText.Insufficient_clearance(), {forbidden})
     else if (String.is_empty(username))
-      Utils.failure(@i18n("Please enter a username"), {bad_request})
+      Utils.failure(@intl("Please enter a username"), {bad_request})
     else if (String.is_empty(password))
-      Utils.failure(@i18n("Please enter a password"), {bad_request})
+      Utils.failure(@intl("Please enter a password"), {bad_request})
     else if (User.username_exists(username))
-      Utils.failure(@i18n("The username {username} already exists."), {conflict})
+      Utils.failure(@intl("The username {username} already exists."), {conflict})
     else {
       sp = if (fname == "" || lname == "") "" else " "
       fullname = "{fname}{sp}{lname}"
@@ -115,7 +115,7 @@ module AdminController {
           else {
             allpasses = String.concat("\n", passwords)
             attachement = File.create(state.key, "logins.txt", "text/plain", binary_of_string(allpasses), Label.attached.id)
-            content = @i18n("The Bulk accounts have successfully been imported!\nSome missing passwords were automatically generated and added to the attached file.")
+            content = @intl("The Bulk accounts have successfully been imported!\nSome missing passwords were automatically generated and added to the attached file.")
             MessageController.send_local_mail(state.key, "Bulk accounts", content, [attachement.file.id])
             callback({success: res})
           }
@@ -134,9 +134,9 @@ module AdminController {
     if (not(Login.is_admin(state)))
       callback({failure: AppText.not_allowed_action()})
     else if (new_settings.disconnection_timeout <= 0)
-      callback({failure: @i18n("Negative timeout not allowed")})
+      callback({failure: @intl("Negative timeout not allowed")})
     else if (new_settings.disconnection_grace_period <= 0)
-      callback({failure: @i18n("Negative grace period not allowed")})
+      callback({failure: @intl("Negative grace period not allowed")})
     else {
       domain = if (new_settings.domain == "") AppConfig.default_domain else new_settings.domain
       new_settings = { new_settings with ~domain }
@@ -148,12 +148,12 @@ module AdminController {
       if (old_settings.logo != new_settings.logo)
         log("Logo changed")
       if (old_settings.domain != new_settings.domain) {
-        if (Utils.ask(AppText.Warning(), @i18n("Changing the domain means rewriting all user email addresses, do you wish to continue?"))) {
+        if (Utils.ask(AppText.Warning(), @intl("Changing the domain means rewriting all user email addresses, do you wish to continue?"))) {
           log("Domain name set to {new_settings.domain}")
           Admin.changeSettings(new_settings,true)
           callback({success: (new_settings.disconnection_timeout, new_settings.disconnection_grace_period, domain)})
         } else
-          callback({failure: @i18n("Administrator abort, not changing domain")})
+          callback({failure: @intl("Administrator abort, not changing domain")})
       }else {
         Admin.changeSettings(new_settings,false)
         callback({success: (new_settings.disconnection_timeout, new_settings.disconnection_grace_period, domain)})
@@ -171,7 +171,7 @@ module AdminController {
     exposed @async function void create(name, url, string display, callback) {
       state = Login.get_state()
       if (not(Login.is_super_admin(state))) callback({failure: AppText.unauthorized()})
-      else @toplevel.App.create(name, url, display) |> config(_, callback)
+      else @toplevel.App.create(name, url, display) |> @toplevel.App.config(_, callback)
     }
 
     /** Delete an existing application. The identifier is the app's consumer key. */
@@ -199,29 +199,6 @@ module AdminController {
       state = Login.get_state()
       if (not(Login.is_super_admin(state))) []
       else @toplevel.App.list()
-    }
-
-    /** Export app configuration (consumer secret) to the shared path /etc/peps/apps. */
-    protected function config(result, callback) {
-      match (result) {
-        case {success: app}:
-          port = Parser.parse(parser {
-            case "http" ("s")? "://" (!":" .)* ":" port=Rule.integer .*: port
-            case "http://" .*: 8080
-            case "https://" .*: 4443
-            case .*: 8080
-          }, app.url)
-          serverport = AppParameters.parameters.http_server_port ? AppConfig.http_server_port
-          provider = "{Admin.get_domain()}:{serverport}"
-          AppParameters.config(
-            app.name, provider,
-            app.oauth_consumer_key,
-            app.oauth_consumer_secret,
-            port
-          )
-        default: void
-      }
-      callback(result)
     }
 
   } // END APP

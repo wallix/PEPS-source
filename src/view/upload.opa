@@ -83,9 +83,9 @@ module UploadView {
     progress =
      (if (Option.is_some(file)) <progress id="{id}-progress" value="0"></progress>
       else <></>)
-    <div id={id} class="file-attached pull-left fade in">
+    <div id={id} class="file-item pull-left fade in">
       <div class="file-thumbnail pull-left">{icon}</div>
-      <div class="file-attached-content">
+      <div class="file-item-content">
         <div class="name">{Utils.string_limit(35, name)}</div>
         <small class="size">{Utils.print_size(size)}</small>
       </div>
@@ -109,7 +109,7 @@ module UploadView {
       case {some: file}:
         debug("remove: {file.fileName}")
         file.cancel() // Cancel upload.
-        FSController.purge(RawFile.idofs(file.uniqueIdentifier)) |> ignore // Remove partial file in memory.
+        FileController.purge(RawFile.idofs(file.uniqueIdentifier)) |> ignore // Remove partial file in memory.
       default:
         void
     }
@@ -158,7 +158,7 @@ module UploadView {
   client function fileSuccess(string upid)(ResumableFile.t file) {
     debug("fileSuccess: {file.fileName}")
     id = file.uniqueIdentifier
-    match (FSController.file_of_raw(RawFile.idofs(id))) {
+    match (FileController.register(RawFile.idofs(id))) {
       case {success: fid}:
         log("fileSuccess: sending preview...")
         Resumable.File.sendPreview("{id}-canvas", "image/png", id, "/thumbnail") // Send preview (if defined).
@@ -243,7 +243,7 @@ module UploadView {
   private exposed function process_attachments(list(File.id) files) {
     state = Login.get_state()
     files = List.filter_map(function (fid) {
-      match (File.get_raw(fid)) {
+      match (File.getRaw(fid)) {
         case {none}: {none}
         case {some: raw}:
           upfile = {
@@ -314,7 +314,7 @@ module UploadView {
     <div>
       <div class="files-upload-group pull-left">
         <label class="control-label">{AppText.classification()}: </label>
-        {LabelView.Class.selector("file_class", key, security)}
+        {LabelView.Class.selector("file_class", key, security, Utils.voidaction)}
         <div class="btn btn-default fileinput-button" onready={init_resumable("upload", "modal_upload", "fileupload")}>
             {AppText.Select_file()}
             <input id="fileupload" type="file" name="files[]" data-url="/upload" multiple/>
@@ -333,16 +333,16 @@ module UploadView {
    * @param where destination of uploaded files.
    * @param security default security label applied to uploaded files.
    */
-  function modal(either(Directory.id, Path.t) where, Label.id security) {
+  function modal(File.location where, Label.id security) {
     t0 = Date.now()
     state = Login.get_state()
     name =
       match (where) {
-        case {right: []}: AppText.files()
-        case {right: path}: Utils.last(path)
+        case {path: []}: AppText.files()
+        case ~{path}: Utils.last(path)
         // Note: if the directory is non existent, the files are uploaded to the root anyway
         // AppText.files is a correct alternative.
-        case {left: dir}: Directory.get_name(dir) ? AppText.files()
+        case {directory: dir}: Directory.get_name(dir) ? AppText.files()
       }
     t1 = Date.now()
     selectors = selectors(state.key, security)

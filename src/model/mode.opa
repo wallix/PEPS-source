@@ -86,9 +86,9 @@ module Mode {
     case {dashboard: _}: AppText.dashboard()
     case {files: _}: AppText.files()
     case {share: _}: AppText.share()
-    case ~{people}: @i18n("People ({people})")
-    case ~{admin}: @i18n("Admin ({admin})")
-    case ~{settings}: @i18n("Settings ({settings})")
+    case ~{people}: @intl("People ({people})")
+    case ~{admin}: @intl("Admin ({admin})")
+    case ~{settings}: @intl("Settings ({settings})")
     case ~{app, active}: "{app}: {active} (plugin)"
     case {error}: "#?%/"
   }
@@ -106,7 +106,7 @@ module Mode {
   }
 
   name = function {
-    case ~{messages}: Box.print_no_i18n(messages)  // See comment on anchor(mails). The name is used to check if anchor is the same.
+    case ~{messages}: Box.print_no_intl(messages)  // See comment on anchor(mails). The name is used to check if anchor is the same.
     case ~{files}:
       if (files == "") "files"
       else "files:{files}"
@@ -141,4 +141,10 @@ module Mode {
     default: false
   }
 
+  /** Determine whether the mode is active or not. */
+  function isActive(Mode.t mode) {
+    urn = URN.get()
+    class = Mode.class(mode)
+    equiv(urn.mode, mode) || Dom.has_class(#{"sidebar_{class}"}, "app-visible")
+  }
 }

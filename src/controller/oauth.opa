@@ -27,7 +27,7 @@ module OauthController {
   private function method(ff) {
     match (HttpRequest.get_method()) {
       case {some: method}: ff(method)
-      default: {failure: @i18n("Unspecified HTTP method")}
+      default: {failure: @intl("Unspecified HTTP method")}
     }
   }
 

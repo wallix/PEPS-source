@@ -84,7 +84,7 @@ module FSController {
 
   /** Check the access rights of a resource. */
   protected @expand function clearance(File.access access)(FS.resource src) {
-    FileToken.Access.imply(src.access, access)
+    File.Access.imply(src.access, access)
   }
 
   /**
@@ -95,11 +95,11 @@ module FSController {
   protected function checkAccess(Share.source src, ownership, clearance) {
     match (Share.switch(src, FileToken.get_resource, Directory.get_resource)) {
       case {some: resource}:
-        if (not(ownership(resource))) Utils.failure(@i18n("You cannot access this resource"), {forbidden})
-        else if (not(clearance(resource))) Utils.failure(@i18n("You do not have the clearance to perform this operation"), {forbidden})
+        if (not(ownership(resource))) Utils.failure(@intl("You cannot access this resource"), {forbidden})
+        else if (not(clearance(resource))) Utils.failure(@intl("You do not have the clearance to perform this operation"), {forbidden})
         else {success: resource}
       default:
-        Utils.failure(@i18n("The requested resource does not exist"), {wrong_address})
+        Utils.failure(@intl("The requested resource does not exist"), {wrong_address})
     }
   }
 
@@ -150,16 +150,13 @@ module FSController {
     if (not(Login.is_logged(state)))
       Utils.Failure.login()
     else if (newname == "")
-      Utils.failure(@i18n("You must enter a non empty name"), {bad_request})
+      Utils.failure(@intl("You must enter a non empty name"), {bad_request})
     else
       match (checkAccess(src, ownership(state.key, {admin}), clearance({read}))) {
         case {success: _resource}:
           match (src) {
             case {file: tid}:
               setname = FileToken.rename(tid, newname)
-                // Automatic publication and update.
-                FileToken.publish(tid)
-                Option.map(FileToken.syncall, FileToken.get_file(tid)) |> ignore
               {success: setname}
             case ~{dir}:
               DirectoryController.rename(dir, newname) |> ignore
@@ -192,8 +189,8 @@ module FSController {
                   case {success: copies}:
                     name = FileToken.get_name(file)
                     // Send a message alerting sharees of the new file.
-                    subject = @i18n("File '{name}'' from {sharername}")
-                    content = @i18n("File '{name}' from {sharername} has been added to your 'shared' directory")
+                    subject = @intl("File '{name}'' from {sharername}")
+                    content = @intl("File '{name}' from {sharername} has been added to your 'shared' directory")
                     List.iter(MessageController.send_local_mail(_, subject, content, []), sharees)
                     // Return the copies that need to be approved by the active user.
                     {success: copies}
@@ -204,8 +201,8 @@ module FSController {
                   case {success: copies}:
                     name = Directory.get_name(dir)
                     // Send a message alerting sharees of the new file.
-                    subject = @i18n("Directory '{name}'' from {sharername}")
-                    content = @i18n("Directory '{name}' from {sharername} has been added to your 'shared' directory")
+                    subject = @intl("Directory '{name}'' from {sharername}")
+                    content = @intl("Directory '{name}' from {sharername} has been added to your 'shared' directory")
                     List.iter(MessageController.send_local_mail(_, subject, content, []), sharees)
                     // Return the copies that need to be approved by the active user.
                     {success: copies}
@@ -228,9 +225,9 @@ module FSController {
     if (not(Login.is_logged(state)))
       Utils.Failure.login()
     else if (not(exists))
-      Utils.failure(@i18n("Inexistent directory {newdir}"), {wrong_address})
+      Utils.failure(@intl("Inexistent directory {newdir}"), {wrong_address})
     else if (isshared && isdir)
-      Utils.failure(@i18n("This directory is shared and cannot be moved"), {forbidden})
+      Utils.failure(@intl("This directory is shared and cannot be moved"), {forbidden})
     else
       match (checkAccess(src, ownership(state.key, {admin}), clearance({read}))) {
         case {success: resource}:
@@ -251,7 +248,7 @@ module FSController {
     if (not(Login.is_logged(state)))
       Utils.Failure.login()
     else if (not(Label.KeySem.user_can_use_label(state.key, class)))
-      Utils.failure(@i18n("You are not allowed to use this label"), {forbidden})
+      Utils.failure(@intl("You are not allowed to use this label"), {forbidden})
     else {
       ownership = ownership(state.key, {admin})
       clearance = clearance({admin})
@@ -345,153 +342,6 @@ module FSController {
         }
       default:
         Utils.failure(AppText.inexistent_link(), {wrong_address})
-    }
-  }
-
-  /**
-   * {2 Mail files.}
-   *
-   * Thies two functions are used only once, to confirm the deletion of
-   * the raw file behind a mail file.
-   * Temporarily cut out, until more precise specification.
-   *
-
-  protected function is_file_owner(User.key key, RawFile.id fid) {
-    match (RawFile.get_owner(fid)) {
-      case { none }: true
-      case { some: owner }: owner == key
-    }
-  }
-
-  protected function do_delete(User.key key, File.id fid) {
-    if (is_file_owner(key, fid)) File.delete(fid) else void
-  }
-
-  */
-
-  /** {2} Uploads. */
-
-  /** Create a new file from a raw file. */
-  exposed function file_of_raw(RawFile.id id) {
-    state = Login.get_state()
-    if (not(Login.is_logged(state))) Utils.Failure.login()
-    else
-      match (RawFile.get(id)) {
-        case {some: raw}:
-          if (raw.owner != state.key) Utils.Failure.forbidden()
-          else if (List.length(raw.chunks) < raw.totalchunks) Utils.failure(AppText.unauthorized(), {internal_server_error})
-          else {
-            file = File.import(raw, Label.open.id) // Create file. NB: internal label will be overidden by security label selected in upload modal.
-            RawFile.finish(raw.id, file.id, 1, none) |> ignore // Update raw.
-            {success: file.id}
-          }
-        default: Utils.Failure.notfound()
-      }
-  }
-
-  /** Layer on the model's purge function. */
-  exposed function purge(RawFile.id id) {
-    state = Login.get_state()
-    if (not(Login.is_logged(state))) Utils.Failure.login()
-    else
-      match (RawFile.get_owner(id)) {
-        case {some: owner}:
-          if (owner != state.key) Utils.Failure.forbidden()
-          else {
-            RawFile.purge(id)
-            {success}
-          }
-        default: Utils.Failure.notfound()
-      }
-  }
-
-  /**
-   * Annoying thing about this function: returns a garbage id
-   * when it should fail (id == "please login").
-   * FIXME return an outcome instead.
-   */
-  protected function string upload_file(name, mimetype, binary data) {
-    state = Login.get_state()
-    if (not(Login.is_logged(state))) AppText.login_please()
-    else
-      File.create(state.key, name, mimetype, data, Label.attached.id).file.id
-      |> File.sofid
-  }
-
-  /**
-   * If the file added is shared, try finding
-   * the original in the db (to avoid duplication).
-   */
-  private function find_duplicate(key, file, origin) {
-    match (origin) {
-      case {upload: _}: none
-      default: FileToken.find(key, {teams: true, location: {everywhere}, query: {active: file}})
-    }
-  }
-
-  /**
-   * Upload the files attached to a mail to the user's file system.
-   * Depending on the origin, the file is either:
-   *   - shared: ignored (because the file already present in the FS)
-   *   - uploaded: added to the 'attached' directory (because the file has just been imported,
-   *      but never added to the FS)
-   * @param files list of { origin: File.origin, string name, id: File.id }
-   * @param security unparsed security label
-   * @param where destination of the upload.
-   * @param callback the callback function, expecting a list of fileTokens (encapsulated in an outcome)
-   */
-  @async
-  exposed function void upload(files, either(Directory.id, Path.t) where, string security, callback) {
-    state = Login.get_state()
-    if (not(Login.is_logged(state)))
-      callback(Utils.Failure.login())
-    else {
-      security = Label.find(state.key, security, {class})
-      (dir, owner) =
-        match (where) {
-          case {left: dir}:
-            match (Directory.get_owner(dir)) {
-              case {some: owner}: ({some: dir}, owner)
-              default: (none, state.key)
-            }
-          case {right: path}: (Directory.create_from_path(state.key, path), state.key)
-        }
-      files = List.map(
-        function (upfile) {
-          match (File.get_raw(upfile.id)) {
-            case {some: raw}:
-              // Lookup the version to avoid duplicates.
-              // If the origin is [shared], lookup a FileToken whose active version is the
-              // given one, else, created a new token.
-              duplicate = find_duplicate(owner, raw.id, upfile.origin)
-              token = match (duplicate) {
-                // File token pre-existant.
-                case {some: token}: token
-                default:
-                  // No file token: create one.
-                  token = FileTokenController.new(owner, upfile.origin, upfile.id, raw, {admin}, dir)
-                  // Index the raw file in solr.
-                  // We have to push this since if solr isn't running we'll lock up the modal.
-                  Scheduler.push(function () {
-                    Search.File.extract(
-                      raw.id, RawFile.getBytes(raw),
-                      raw.name, raw.mimetype) |> ignore
-                  })
-                  // Return the token.
-                  token
-              }
-
-              match (security) {
-                case {some: security}:
-                  // Does not override existing security labels, only internal ones.
-                  File.add_security(token.file, security.id) |> ignore
-                default: void
-              }
-              token.file
-            default: upfile.id
-          }
-        }, files)
-      callback({success: (dir, files)})
     }
   }
 

@@ -78,6 +78,8 @@ type RawFile.t = {
 // Metadata only.
 type RawFile.metadata = {
   RawFile.id id,                // Unique id.
+  User.key owner,               // Owner the the raw file.
+  File.id file,                 // The original file.
   string name,                  // File name.
   int size,                     // File size in bytes.
   string mimetype,              // File mimetype.
@@ -98,8 +100,8 @@ module RawFile {
 
   /** {1} Utils. */
 
-  private function log(msg) { Log.notice("RawFile: ", msg) }
-  private function debug(msg) { Log.debug("RawFile: ", msg) }
+  private function log(msg) { Log.notice("[RawFile]", msg) }
+  private function debug(msg) { Log.debug("[RawFile]", msg) }
 
   @stringifier(RawFile.id) function sofid(RawFile.id id) { id }
   function RawFile.id idofs(string id) { id }
@@ -191,12 +193,12 @@ module RawFile {
    * The thumbnail can have its own, separate mimetype, and is stored just like a chunk.
    * If the preview's size exceed mongo file limit, the preview is not uploaded.
    */
-  function add_thumbnail(RawFile.id id, binary data, string mimetype) {
-    match (RawFile.get_metadata(id)) {
+  function addThumbnail(RawFile.id id, binary data, string mimetype) {
+    match (RawFile.getMetadata(id)) {
       case {some: raw}:
         sha = Crypto.Hash.sha512(data)
         size = Binary.length(data)
-        if (size < 10000000) { // Size limit
+        if (size < 10000000) { // Size limit.
           Db.remove(@/webmail/rawfiles[id == id]/thumbnail) // PATCH for mongo error.
           // Remove previous thumbnail.
           match (raw.thumbnail) {
@@ -206,6 +208,10 @@ module RawFile {
           // Add thumbnail.
           /webmail/rawfiles[id == id] <- {thumbnail: {some: ~{sha, mimetype, size}}}
           /rawdata/chunks[sha == sha] <- ~{sha, data}
+          // Propagate to tokens.
+          DbSet.iterator(/webmail/filetokens[active == id]/id) |>
+          Iter.iter(function (id) { Db.remove(@/webmail/filetokens[id == id]/thumbnail) }, _)
+          /webmail/filetokens[active == id] <- {thumbnail: {some: ~{sha, mimetype, size}}}
         }
       default: void
     }
@@ -273,13 +279,13 @@ module RawFile {
   function get(RawFile.id id) {
     DbUtils.option(/webmail/rawfiles[id == id and deleted == false])
   }
-  function get_metadata(RawFile.id id) {
-    DbUtils.option(/webmail/rawfiles[id == id and deleted == false].{id, size, mimetype, created, thumbnail, name, encryption})
+  function getMetadata(RawFile.id id) {
+    DbUtils.option(/webmail/rawfiles[id == id and deleted == false].{id, size, mimetype, created, thumbnail, name, encryption, owner, file})
   }
-  function get_name(RawFile.id id) {
+  function getName(RawFile.id id) {
     DbUtils.option(/webmail/rawfiles[id == id and deleted == false]/name)
   }
-  function get_owner(RawFile.id id) {
+  function getOwner(RawFile.id id) {
     DbUtils.option(/webmail/rawfiles[id == id and deleted == false]/owner)
   }
   function get_size(RawFile.id id) {
@@ -410,7 +416,7 @@ module RawFile {
 
   /** Return the link (path) at which the file is accessible. */
   function get_raw_link(RawFile.id id) {
-    match (get_name(id)) {
+    match (getName(id)) {
       case {some: name}:
         sanname = Uri.encode_string(name)
         sanid = Uri.encode_string("{id}")
@@ -448,58 +454,18 @@ module RawFile {
   /** {1} Modifiers. */
 
   /**
-   * Encrypt a raw file.
-   * The content is in fact encrypted client side, this function just updates the
-   * chunks and encryption of the raw file in memory.
+   * Encrypt a raw file. The content is in fact encrypted client side, this function
+   * only updates the chunks and encryption of the raw file in memory.
    */
   function encrypt(RawFile.id id, chunks, encryption) {
     /webmail/rawfiles[id == id] <- ~{chunks, encryption}
   }
 
-  /**
-   * Not exactly a modifier: produces a new raw file with a different name, linked
-   * to the given one.
-   *
-   * @param owner the new file owner, who may change between versions
-   */
-  function rename(User.key owner, RawFile.id id, newname) {
-    match  (get(id)) {
-      case {none}: id
-      case {some: raw}:
-        if (raw.name != newname) {
-          version = File.version(raw.file)
-          new = ~{raw with name: newname, owner, version, previous: some(id), id: DbUtils.OID.gen()}
-          /webmail/rawfiles[id == new.id] <- new
-          new.id
-        } else
-          id
-    }
+  /** Rename a version. */
+  function rename(RawFile.id id, newname) {
+    log("rename: id={id} newname={newname}")
+    /webmail/rawfiles[id == id] <- {name: newname; ifexists}
   }
-
-  /**
-   * Build a new version of a file. Contrary to the rename operation, this action
-   * also modifies the content.
-   *
-   * @param owner the new file owner, who may change between versions
-   */
-  // function revise(User.key owner, RawFile.id id, newname, mimetype, content) {
-  //   match (get(id)) {
-  //     case {none}: id
-  //     case {some: raw}:
-  //       newsha = Crypto.Hash.sha256(content)
-  //       if (raw.name != newname || raw.sha != newsha) {
-  //         version = File.version(raw.file)
-  //         metadata = {sha: newsha}
-  //         new = make(owner, newname, Binary.length(content), mimetype, raw.file, version, {some: id})
-  //         if (not( raw_exists(newsha) )) {
-  //           /rawdata/files/blocks[sha == newsha] <- GridFS.create(metadata, Iter.cons(content, Iter.empty))
-  //         }
-  //         /webmail/rawfiles[id == new.id] <- {new with sha: newsha}
-  //         new.id
-  //       } else
-  //         id
-  //   }
-  // }
 
   /** Delete the raw file, but does not remove it from the database. */
   function delete(RawFile.id id) {
@@ -508,7 +474,7 @@ module RawFile {
 
   /** Remove a file and all its chunks. */
   function purge(RawFile.id id) {
-    debug("purge: removing raw file {id}")
+    log("purge: removing raw file {id}")
     match (?/webmail/rawfiles[id == id].{chunks, thumbnail}) {
       case {some: raw}:
         List.iter(function (chunk) { Chunk.remove(chunk.sha) }, raw.chunks)

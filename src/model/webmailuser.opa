@@ -201,7 +201,7 @@ module WebmailUser {
     case {List:[{~String}]}: chk(String);
     case {List:[{~Int}]}: chk("{Int}");
     case {List:[{~Bool}]}: chk("{Bool}");
-    default: {bad:@i18n("Bad JSON for string object {json}")};
+    default: {bad:@intl("Bad JSON for string object {json}")};
     }
   }
 
@@ -214,7 +214,7 @@ module WebmailUser {
         case {none}: {ok:set(rcrd, {some:Int})};
         case {some:_}: {multiple};
         }
-      case {none}: {bad:@i18n("Bad integer string {Int}")};
+      case {none}: {bad:@intl("Bad integer string {Int}")};
       }
     }
     function chk(int Int) { match (cur) { case {none}: {ok:set(rcrd, {some:Int})}; case {some:_}: {multiple}; } }
@@ -224,7 +224,7 @@ module WebmailUser {
     case {List:[]}: {ok:rcrd};
     case {List:[{~String}]}: chks(String);
     case {List:[{~Int}]}: chk(Int);
-    default: {bad:@i18n("Bad JSON for int object {json}")};
+    default: {bad:@intl("Bad JSON for int object {json}")};
     }
   }
 
@@ -240,7 +240,7 @@ module WebmailUser {
       match (Bool) {
       case "TRUE": aux(true);
       case "FALSE": aux(false);
-      default: {bad:@i18n("Bad boolean string {Bool}")};
+      default: {bad:@intl("Bad boolean string {Bool}")};
       }
     }
     function chk(bool Bool) { match (cur) { case {none}: {ok:set(rcrd, {some:Bool})}; case {some:_}: {multiple}; } }
@@ -250,14 +250,14 @@ module WebmailUser {
     case {List:[]}: {ok:rcrd};
     case {List:[{~String}]}: chks(String);
     case {List:[{~Bool}]}: chk(Bool);
-    default: {bad:@i18n("Bad JSON for boolean object {json}")};
+    default: {bad:@intl("Bad JSON for boolean object {json}")};
     }
   }
 
   private function chkMultiple(aux, flds, res) {
     match (res) {
     case {ok:rcrd}: aux(flds, rcrd);
-    case {multiple}: {failure:@i18n("Multiple SINGLE-VALUE entries")};
+    case {multiple}: {failure:@intl("Multiple SINGLE-VALUE entries")};
     case {~bad}: {failure:bad};
     }
   }
@@ -450,12 +450,12 @@ module WebmailUser {
                         function (wu, webmailUserBlocked) { {wu with ~webmailUserBlocked} }));
 
           default:
-            {failure:@i18n("Bad webmailUser field '{fld.f1}'")};
+            {failure:@intl("Bad webmailUser field '{fld.f1}'")};
           }
         }
       }
       aux(Record, default_webmailUser);
-    default: {failure:@i18n("JSON value is not Record")};
+    default: {failure:@intl("JSON value is not Record")};
     }
   }
 
@@ -463,7 +463,7 @@ module WebmailUser {
     missing = List.flatten([if (List.is_empty(wu.cn)) ["cn"] else [],
                             if (List.is_empty(wu.sn)) ["sn"] else []])
     if (not(List.is_empty(missing)))
-      {failure:@i18n("Missing MUST fields {String.concat(",",missing)}")}
+      {failure:@intl("Missing MUST fields {String.concat(",",missing)}")}
     else {
       function mkstr(string String) { {~String} }
       function lst(name, l) {

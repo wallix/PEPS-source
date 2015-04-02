@@ -67,19 +67,19 @@ module PeopleView {
     match (mode) {
       case "users":
         [{
-          text: {@i18n("New user")},
+          text: {@intl("New user")},
           action: UserView.build_register,
           id: SidebarView.action_id
         }]
       case "teams":
         [{
-          text: {@i18n("New team")},
+          text: {@intl("New team")},
           action: TeamView.create(true, _),
           id: SidebarView.action_id
         }]
       case "contacts":
         [{
-          text: {@i18n("New contact")},
+          text: {@intl("New contact")},
           action: ContactView.create(_),
           id: SidebarView.action_id
         }]
@@ -102,7 +102,7 @@ module PeopleView {
 
       contacts = [
         { name: "contacts", icon: "contact", id: "contacts", title: AppText.contacts(), onclick: onclick("contacts", _) },
-        { separator: @i18n("Team Contacts"), button : none},
+        { separator: @intl("Team Contacts"), button : none},
         { content: PeopleView.list_team_contacts(state, view) }
       ]
 

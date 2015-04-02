@@ -164,6 +164,9 @@ module RestApi {
 
         // More to come ...
 
+        /** Notifications. */
+        case GET    "/notify/" user=user_id ("?" .*)?: Notifications.broadcast(user)
+
       } |> Parser.Text.parse(_, t)
   }
 
@@ -282,7 +285,7 @@ module RestApi {
       if (provided == none) // Assume OAuth version is 1.0
         ifok(params)
       else if (provided != {some: expected})
-        error_page(0, @i18n("OAuth version {provided ? "_"} not supported"))
+        error_page(0, @intl("OAuth version {provided ? "_"} not supported"))
       else
         ifok(params)
     }
@@ -392,8 +395,8 @@ module RestApi {
       else {
         title =
           match (Oauth.get_consumer_name(oauth_token)) {
-            case {some:name}: @i18n("Sign in to {name} using {Admin.logo()}")
-            case {none}: @i18n("Sign in to {Admin.logo()}")
+            case {some:name}: @intl("Sign in to {name} using {Admin.logo()}")
+            case {none}: @intl("Sign in to {Admin.logo()}")
           }
         xhtml =
           <div class="home-card">
@@ -416,13 +419,13 @@ module RestApi {
     function authorize(int version) {
       log("OAuth.authorize")
       match (HttpRequest.get_url()) {
-        case {none}: error_page(version, @i18n("No URL defined"))
+        case {none}: error_page(version, @intl("No URL defined"))
         case {some:uri}:
           match (List.assoc("oauth_token", uri.query)) {
             case {some:oauth_token}:
               oauth_callback = List.assoc("oauth_callback", uri.query) ? "oob"
               login(version, oauth_token, oauth_callback, uri)
-            default: error_page(version, @i18n("No authorization data provided"))
+            default: error_page(version, @intl("No authorization data provided"))
           }
       }
     }
@@ -648,7 +651,18 @@ module RestApi {
               t1 = Date.now()
               blength = String.byte_length(message.content)
               if (blength < AppConfig.message_max_size) {
-                Message.Async.add(some(state.key), message, inline, false, send, {none}, ignore)
+                Message.Async.add(some(state.key), message, inline, false, send, {none}, function {
+                  case {success: (mid, _encrypted)}:
+                    Notification.Broadcast.received(mid, message.owners)
+                    // Add journal entries.
+                    Journal.Main.logDated(
+                      message.header.creator, Message.Address.keys(message.header.to ++ message.header.cc ++ message.header.bcc),
+                      { message: mid, snippet: message.header.snippet,
+                        subject: message.header.subject, from: message.header.from },
+                      message.header.created) |> ignore
+                    Journal.Message.log_send(message, false) |> ignore
+                  default: void
+                })
 
 
                 format(message.status(state.key))
@@ -986,7 +1000,8 @@ module RestApi {
           // status = parse_status(data.status)
           fname = data.firstName
           lname = data.lastName
-          match (AdminController.register(fname, lname, data.username, data.password, data.level, data.teams)) {
+          username = Utils.sanitize(data.username)
+          match (AdminController.register(fname, lname, username, data.password, data.level, data.teams)) {
             case {success: (_, user)}: Http.Json.success(user)
             case ~{failure}: Http.Json.outcome(~{failure})
           }
@@ -1165,7 +1180,7 @@ module RestApi {
         else HttpRequest.get_bin_body()
       // Identify the place of destination.
       path = Path.parse(path)
-      match (FileTokenController.Api.upload(data ? Binary.create(0), mimetype, class, path)) {
+      match (FileTokenController.Api.upload(data ? Binary.create(0), mimetype, class, path, overwrite)) {
         case {success: token}:
           Http.Json.success({})
         case {failure: err}: Http.Json.error(err)
@@ -1222,5 +1237,26 @@ module RestApi {
     }
 
   } // END FS
+
+  /** End points for user notifications. */
+  module Notifications {
+
+    /** Broadcast a topbar notification to one user. */
+    function broadcast(User.key user) {
+      state = Login.get_state()
+      if (not(Login.is_logged(state)))
+        Http.Json.unauthorized()
+      else {
+        url = HttpRequest.get_url()
+        mode = Http.Query.string("mode", url)
+        match (mode) {
+          case {some: mode}: Notification.Broadcast.increment(user, mode)
+          default: void
+        }
+        Http.Json.success({})
+      }
+    }
+
+  }
 
 }

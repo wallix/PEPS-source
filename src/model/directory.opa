@@ -390,7 +390,7 @@ module Directory {
             // Assume access rights have been checked and deemed sufficient.
             // The registered access rights are the highest of the proposed new, and the previous.
             case {some: odir}:
-              {dir: odir, access: FileToken.Access.max(dir.access, access)}
+              {dir: odir, access: File.Access.max(dir.access, access)}
           }
 
         // Copy the directory as needed. Created copies are gathered in order to perform
@@ -414,7 +414,7 @@ module Directory {
                     default:
                       copies = outcome.copies
                       msg = AppText.non_existent_folder(dst)
-                      msg = if (List.length(copies) > 0) msg ^ " ({@i18n("succeeded for")} {String.concat(", ", List.map(_.f1, copies))}" else msg
+                      msg = if (List.length(copies) > 0) msg ^ " ({@intl("succeeded for")} {String.concat(", ", List.map(_.f1, copies))}" else msg
                       {outcome with status: Utils.failure(msg, {wrong_address})}
                   }
               }
@@ -427,7 +427,7 @@ module Directory {
         }
         // TODO: create a sharelog for directories.
       default:
-        Utils.failure(@i18n("Undefined directory {src}"), {wrong_address})
+        Utils.failure(@intl("Undefined directory {src}"), {wrong_address})
     }
   }
 
@@ -450,7 +450,7 @@ module Directory {
       // Note: do NOT reuse existing tokens, since we want to have the same contents.
       // This may lead to duplicate tokens, but whatever.
       // Also FileToken.list filters out hidden files, so always hidden=false.
-      match (File.get_raw_metadata(token.file)) {
+      match (File.getMetadata(token.file)) {
         case {some: raw}:
           match ((token.encryption, raw.encryption)) {
             case ({key: fileSecretKey, ~nonce}, {key: filePublicKey ...}):
@@ -479,7 +479,7 @@ module Directory {
           {dir: subdir.id, ~access}
         // Assume access rights have been checked and deemed sufficient.
         case {some: odir}:
-          {dir: odir, access: FileToken.Access.max(subdir.access, access)}
+          {dir: odir, access: File.Access.max(subdir.access, access)}
       }
       // First create copies of the current directory, without copying
       // the content.

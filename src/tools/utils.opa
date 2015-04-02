@@ -112,7 +112,7 @@ module Utils {
   /** Return the last element of the given list. */
   function last(list('a) xs) {
     match (xs) {
-      case []: error(@i18n("empty list in function 'last'"))
+      case []: error(@intl("empty list in function 'last'"))
       case [x]: x
       case [_|xs]: last(xs)
     }
@@ -210,16 +210,16 @@ module Utils {
   }
   /** Standard failures. */
   module Failure {
-    @expand function login() { failure(@i18n("Log-in please"), {unauthorized}) }
-    @expand function notfound() { failure(@i18n("Non-existent resource"), {wrong_address}) }
-    @expand function forbidden() { failure(@i18n("Unauthorized"), {unauthorized}) }
+    @expand function login() { failure(@intl("Log-in please"), {unauthorized}) }
+    @expand function notfound() { failure(@intl("Non-existent resource"), {wrong_address}) }
+    @expand function forbidden() { failure(@intl("Unauthorized"), {unauthorized}) }
   } // END FAILURE
 
 
   function print_size(int size) {
-    if (size < 1024) @i18n("{size} bytes")
-    else if (size < 1024*1024) @i18n("{size/1024} kB")
-    else @i18n("{size/(1024*1024)} MB")
+    if (size < 1024) @intl("{size, number} bytes")
+    else if (size < 1024*1024) @intl("{size/1024, number} kB")
+    else @intl("{size/(1024*1024), number} MB")
   }
 
   client function client_transform(f, d, h) { f(d, Dom.of_xhtml(h)) }

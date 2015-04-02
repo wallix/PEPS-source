@@ -37,7 +37,7 @@ module FolderView {
       Scheduler.sleep(500, function () { Dom.give_focus(#folder_name) })
 
     case {failure: e}:
-      Notifications.error(@i18n("Folder creation"), <>{e}</>)
+      Notifications.error(@intl("Folder creation"), <>{e}</>)
   }
 
   @async
@@ -67,7 +67,7 @@ module FolderView {
     state = Login.get_state()
     match (Folder.get(state.key, id)) {
       case {none}:
-        edit_callback({failure: @i18n("Folder not found")})
+        edit_callback({failure: @intl("Folder not found")})
       case {some: folder}:
         html = build_form(state, some(folder))
         edit_callback({success: html})
@@ -82,7 +82,7 @@ module FolderView {
     case {success}:
       Scheduler.sleep(1000, function () { refresh() })
     case {failure: e}:
-      Notifications.error(@i18n("Delete failure"), <>{e}</>)
+      Notifications.error(@intl("Delete failure"), <>{e}</>)
   }
 
   /**
@@ -91,7 +91,7 @@ module FolderView {
    */
   @async
   exposed function delete(Folder.id id, string name) {
-    if (Client.confirm(@i18n("Are you sure you want to delete the folder {name}?")))
+    if (Client.confirm(@intl("Are you sure you want to delete the folder {name}?")))
       FolderController.Async.delete(id, {inbox}, delete_callback)
     else void
   }
@@ -146,7 +146,7 @@ module FolderView {
       </>, (@public_env(do_edit(folder.id, _)))) +> acc
     }, folders, [])
 
-    ListGroup.make(list, @i18n("No folders"))
+    ListGroup.make(list, @intl("No folders"))
   }
 
   /** {1} Build */
@@ -161,7 +161,7 @@ module FolderView {
         <div class="frow">
           <label class="control-label fcol" for="folder_name">{AppText.name()}:</label>
           <div class="fcol fcol-lg">
-            <input id="folder_name" type="text" class="form-control" autocomplete="off" value="" placeholder="{@i18n("Folder name")}">
+            <input id="folder_name" type="text" class="form-control" autocomplete="off" value="" placeholder="{@intl("Folder name")}"/>
           </div>
         </div>
       </div>
@@ -186,7 +186,7 @@ module FolderView {
     else
       <div id=#folders_list class="pane-left folders_list">
         <div class="pane-heading">
-          <h3>{AppText.folders()}</>
+          <h3>{AppText.folders()}</h3>
         </div>
         {build_folders()}
       </div>
@@ -227,7 +227,7 @@ module FolderView {
         case {folders}:
           xlist
         default:
-          <>{@i18n("Error: view case not possible")} "{view}</>
+          <>{@intl("Error: view case not possible")} "{view}</>
       }
     }
   }

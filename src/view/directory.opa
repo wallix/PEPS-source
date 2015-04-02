@@ -78,7 +78,7 @@ module DirectoryView {
         case {size}:
           { xhtml: <span class="file_size o-selectable"></span>,
             decorator: Xhtml.add_attribute_unsafe("data-size", "0", _) }
-        case {mimetype}: {xhtml: <span class="file_kind o-selectable">{@i18n("folder")}</span>}
+        case {mimetype}: {xhtml: <span class="file_kind o-selectable">{@intl("folder")}</span>}
         case {class}: {xhtml: <span class="file_labels o-selectable"></span>}
         case {link}: {xhtml: ShareView.make_link(dir, share)}
         case {checkbox: onclick}:
@@ -114,7 +114,7 @@ module DirectoryView {
         FileView.load_directory(parent)
         FileView.refresh_tree_view()
       case ~{failure}:
-        Notifications.error(@i18n("Folder creation failure"), <>{failure.message}</>)
+        Notifications.error(@intl("Folder creation failure"), <>{failure.message}</>)
     })
   }
 
@@ -129,7 +129,7 @@ module DirectoryView {
       Form.wrapper(
         <div class="form-group">
           <div class="frow">
-            <label for="name_input" class="control-label fcol">{@i18n("Name")}:</label>
+            <label for="name_input" class="control-label fcol">{@intl("Name")}:</label>
             <div id="name_input-form-group" class="fcol fcol-lg">
               <input id="name_input" type="text" class="form-control" value="" onnewline={create_action}/>
             </div>
@@ -309,7 +309,7 @@ module DirectoryView {
           <>
             { List.fold(`<+>`, list, <dl></dl>) }
           </>
-        default: <>{AppText.error()}: {@i18n("view case not possible")} {view}</>
+        default: <>{AppText.error()}: {@intl("view case not possible")} {view}</>
       }
     }
   }

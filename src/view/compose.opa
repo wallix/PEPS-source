@@ -244,7 +244,7 @@ ComposeView = {{
         <div class="frow">
           {(if AppConfig.has_security_labels then
             <label class="control-label fcol">{AppText.classification()}:</label>
-            <div class="fcol fcol-md">{LabelView.Class.selector("{id}-class", state.key, init.security)}</div>
+            <div class="fcol fcol-md">{LabelView.Class.selector("{id}-class", state.key, init.security, Utils.voidaction)}</div>
           else <></>)}
           <label class="control-label fcol">{AppText.labels()}:</label>
           <div class="fcol fcol-md">{LabelView.Personal.selector("{id}-labels", state.key, init.labels)}</div>
@@ -258,8 +258,8 @@ ComposeView = {{
 
   compose_buttons(state: Login.state, id: string, init: ComposeModal.init) =
     (savetext, saveloading, sendtext, sendloading) =
-      if (init.reedit) then (@i18n("Revert to draft"), AppText.saving(), @i18n("Modify"), AppText.Sending())
-      else                  (@i18n("Save as draft"), AppText.saving(), AppText.Send(), AppText.Sending())
+      if (init.reedit) then (@intl("Revert to draft"), AppText.saving(), @intl("Modify"), AppText.Sending())
+      else                  (@intl("Save as draft"), AppText.saving(), AppText.Send(), AppText.Sending())
     (WB.Button.make({button= <>{savetext}</> callback= do_write(id, "{id}-save", true, init, _)}, [{`default`}])
       |> Xhtml.add_attribute_unsafe("data-loading-text", saveloading, _)
       |> Xhtml.add_attribute_unsafe("data-complete-text", savetext, _)
@@ -334,7 +334,7 @@ ComposeView = {{
       if (encryption) then
         // Message encryption is enforced by the chosen security label.
         // First extract the user's secret key.
-        UserView.SecretKey.prompt(key, @i18n("Please enter your password to encrypt this message."), secretKey ->
+        UserView.SecretKey.prompt(key, @intl("Please enter your password to encrypt this message."), secretKey ->
           match (secretKey) with
           | {some= secretKey} ->
             // Generate a keyPair for the message.
@@ -357,7 +357,7 @@ ComposeView = {{
             }
             MessageController.Async.send(init.mid, init.thread, to, cc, bcc, subject, labels, security, content, files, mtype, init.reedit, encryption, callback)
           | _ ->
-            callback({failure= (@i18n("Unable to encrypt this message, retry later or choose a different label"), [])})
+            callback({failure= (@intl("Unable to encrypt this message, retry later or choose a different label"), [])})
           end)
       else
         MessageController.Async.send(init.mid, init.thread, to, cc, bcc, subject, labels, security, content, files, mtype, init.reedit, {none}, callback)
@@ -376,11 +376,11 @@ ComposeView = {{
       | {internal} | {email=_} -> {file with ~origin}
       | _ -> file, files)
     if draft || subject != "" ||
-        Utils.ask("", @i18n("No subject defined. Continue?")) then
+        Utils.ask("", @intl("No subject defined. Continue?")) then
       if (files == []) then
         do_write_aux(id, btnid, draft, init, [])
       else
-        FSController.upload(files, {right= ["Attached"]}, security,
+        FileController.upload(files, {path= ["Attached"]}, security,
           | {success = (_, files)} -> do_write_aux(id, btnid, draft, init, files)
           | x -> do_write_aux(id, btnid, draft, init, [])
         )
@@ -411,7 +411,7 @@ ComposeView = {{
       do edit({init with reedit=true})
       reedit_callback(mid, {null})
     else
-      reedit_callback(mid, {error= @i18n("Can't obtain lock, mail has been opened")})
+      reedit_callback(mid, {error= @intl("Can't obtain lock, mail has been opened")})
 
   /** Compose a new message. */
   @client new(sgn, _evt) =
@@ -435,7 +435,7 @@ ComposeView = {{
     content = "
 
 {sgn}
-{@i18n("Forwarded message")}:
+{@intl("Forwarded message")}:
 {content}"
     init = ~{defaults with mid=Message.genid() subject content security=init.security files=init.files}
     id = create(AppText.new_message(), init)
@@ -451,7 +451,13 @@ ComposeView = {{
       else "{AppText.Re()}: {init.subject}"
     date = Date.to_formatted_string(Date.generate_printer("%d.%m.%y %H:%M"), created)
     content = Dom.get_text(#{"{init.mid}-content"}) // Content extracted from message view.
-    content = AppText.print_wrote(date, from, content, sgn)
+    content = @intl("
+
+{sgn}
+On {date}, {from} wrote :
+{Utils.print_reply(content)}")
+
+    // AppText.print_wrote(date, from, content, sgn)
     thread = init.thread
     init = ~{defaults with mid=Message.genid() content subject to cc security=init.security labels=init.labels thread}
     id = create(AppText.new_message(), init)

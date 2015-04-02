@@ -127,7 +127,7 @@ MessageController = {{
   /** Check that the recipients have the clearance to read the attachments. */
   @private check_files(message, to) =
     error = List.fold(fid, acc ->
-      match File.get_security(fid) with
+      match File.getClass(fid) with
       | {some= security} ->
         List.fold(user, acc ->
           canread = Label.KeySem.user_can_read_security(user, security)
@@ -143,7 +143,7 @@ MessageController = {{
     | [] -> {success}
     | _ ->
       emails = List.filter_map(User.get_email, error) |> List.map(Email.to_name, _)
-      {failure= @i18n("The following users can't read some of the attached files: {String.concat(",", emails)}")}
+      {failure= @intl("The following users can't read some of the attached files: {String.concat(",", emails)}")}
     end
 
   /** Certify that all recipients can read the message as well as all file attachments. */
@@ -154,7 +154,7 @@ MessageController = {{
     | _ ->
       // FIXME: Still print users whose email can not be recovered ?
       emails = List.filter_map(User.get_email, users) |> List.map(Email.to_name, _)
-      {failure= @i18n("The following users don't have the level to receive your mail: {String.concat(",", emails)}")}
+      {failure= @intl("The following users don't have the level to receive your mail: {String.concat(",", emails)}")}
     end
 
   /**
@@ -179,23 +179,23 @@ MessageController = {{
 
     // Check for unparsed addresses.
     if action == {send} && addrs.unspecified != [] then
-      {failure=(@i18n("The following addresses could not be parsed: {String.concat(",", addrs.unspecified)}"), [])}
+      {failure=(@intl("The following addresses could not be parsed: {String.concat(",", addrs.unspecified)}"), [])}
     // Checks recipients.
     else if action == {send} && addrs.external == [] && addrs.users == [] && addrs.teams == [] then
-      {failure=(@i18n("No recipient specified"), [])}
+      {failure=(@intl("No recipient specified"), [])}
     // Check whether user can user specified class.
     else if (not(Label.KeySem.user_can_use_label(key, security))) then
-      {failure=(@i18n("you do not have access to this security class"), [])}
+      {failure=(@intl("you do not have access to this security class"), [])}
     // Check security label for internet.
     else if action == {send} && external && not(internet) && AppConfig.has_security_labels then
-      {failure=(@i18n("Please use an internet compatible label"), [])}
+      {failure=(@intl("Please use an internet compatible label"), [])}
     else
       // Separate labels into shared and personal.
       slabels = Label.categorize(Utils.const(true), labels)
       personal = List.map(_.id, slabels.personal)
       shared = List.map(_.id, slabels.shared)
       // Build message.
-      snippetcontent = if (encryption != {none}) then @i18n("No snippet available") else content
+      snippetcontent = if (encryption != {none}) then @intl("No snippet available") else content
       header = ~{ Message.make(key, mid, from, to, cc, bcc, subject, none, snippetcontent) with
         external thread= thread ? mid
         labels = shared security
@@ -291,7 +291,7 @@ MessageController = {{
           List.exists(Message.Address.is_external, bcc)
         encryption = encryption && not(external)
         ~{encryption to cc bcc security key=state.key}
-      | _ -> {failure= (@i18n("No security label defined"), [])}
+      | _ -> {failure= (@intl("No security label defined"), [])}
       end
 
   /** Send a new mail (some parameters should have already been parsed by sendBefore). */
@@ -333,7 +333,7 @@ MessageController = {{
         labels = List.filter(Label.check(_, Label.is_not_security), message.labels)
         encryption = message.encryption != {none}
         ~{encryption labels thread subject from date key=state.key cc=message.cc security=message.security}
-      | _ -> {failure=(@i18n("Original message not found"), [])}
+      | _ -> {failure=(@intl("Original message not found"), [])}
       end
 
   /**
@@ -404,7 +404,7 @@ MessageController = {{
     match (Message.get_status(key, mid)) with
     | {none} ->
       do log("change_status: non existent or non accessible message")
-      {failure= @i18n("non existent message")}
+      {failure= @intl("non existent message")}
     | {some= status} ->
       // Update the user local information in the model.
       update(newstatus) =
@@ -580,7 +580,7 @@ MessageController = {{
         // Check nonexistent labels.
         if (added.error != [] || removed.error != []) then
           errlist = List.map(Label.sofid, added.error ++ removed.error) |> List.to_string_using("", "", ", ", _)
-          {failure= @i18n("Undefined labels {errlist}")}
+          {failure= @intl("Undefined labels {errlist}")}
         else
           // do log("----- Previous state:")
           // do log("Shared labels: {message.labels}")
@@ -609,8 +609,8 @@ MessageController = {{
               // Update class.
               if (header.security == previous.id) then
                 {success= {header with security=new.id}}
-              else {failure= @i18n("Failed to update the security class of this message")}
-            | _ -> {failure= @i18n("Failed to update the security class of this message")}
+              else {failure= @intl("Failed to update the security class of this message")}
+            | _ -> {failure= @intl("Failed to update the security class of this message")}
             end
 
           match (header) with
@@ -642,7 +642,7 @@ MessageController = {{
       if (err == []) then {success}
       else
         list = String.concat(",", err)
-        {failure= @i18n("Failed to delete the following messages: {list}")}
+        {failure= @intl("Failed to delete the following messages: {list}")}
     else
       {failure= AppText.login_please()}
 

@@ -97,7 +97,7 @@ module Misc {
     }, chooser.options, <></>)
     // Add other options.
     menu =
-    	if (chooser.custom) menu <+> <li><a onclick={custom}>{@i18n("Custom...")}</a></li>
+    	if (chooser.custom) menu <+> <li><a onclick={custom}>{@intl("Custom...")}</a></li>
     	else menu
 
     <button type="button" data-toggle="dropdown" class="btn btn-default dropdown-toggle">

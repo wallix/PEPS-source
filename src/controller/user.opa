@@ -78,7 +78,7 @@ module UserController {
         uteams = User.get_administrated_teams(state.key)
         (admin, notadmin) = in_and_not_in(teams, uteams)
         if (status != {super_admin} && notadmin != [])
-          Utils.failure(@i18n("You can only add/remove users to/from your own teams"), {forbidden})
+          Utils.failure(@intl("You can only add/remove users to/from your own teams"), {forbidden})
         else
           {success: void}
       }
@@ -133,7 +133,7 @@ module UserController {
             {success: key}
 
           } else
-            Utils.failure(@i18n("Update failed"), {internal_server_error})
+            Utils.failure(@intl("Update failed"), {internal_server_error})
         default: Utils.failure(AppText.not_allowed_action(), {forbidden})
       }
   }
@@ -146,7 +146,7 @@ module UserController {
       if (User.block(key, block))
         {success: void}
       else
-        Utils.failure(@i18n("Block failed"), {internal_server_error})
+        Utils.failure(@intl("Block failed"), {internal_server_error})
     }
   }
 
@@ -159,7 +159,7 @@ module UserController {
         case {some: newpass}:
           {success: newpass}
         default:
-          Utils.failure(@i18n("Reset failed"), {internal_server_error})
+          Utils.failure(@intl("Reset failed"), {internal_server_error})
       }
   }
 
@@ -244,7 +244,7 @@ module UserController {
     state = Login.get_state()
     if (Login.is_logged(state))
       match (User.get_picture(key)) {
-        case {some: picture}: FileController.download_thumbnail("{picture}")
+        case {some: picture}: FileController.downloadThumbnail("{picture}", false)
         default: Resource.binary(Binary.create(0), "image/jpeg")
       }
     else Resource.binary(Binary.create(0), "image/jpeg")

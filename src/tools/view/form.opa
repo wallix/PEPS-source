@@ -74,7 +74,7 @@ module Form {
     function remove_input(_) { Dom.remove(#{options.id}) }
     // Input.
     <div class="multiple-input" id="{options.id}">
-      <a onclick={remove_input} class="pull-right" title={@i18n("Remove")} data-placement="bottom" rel="tooltip" ><i class="fa fa-minus-circle-o"/></a>
+      <a onclick={remove_input} class="pull-right" title={@intl("Remove")} data-placement="bottom" rel="tooltip" ><i class="fa fa-minus-circle-o"/></a>
       <div class="input-group">
         <div class="input-group-btn">
           { Misc.chooser({

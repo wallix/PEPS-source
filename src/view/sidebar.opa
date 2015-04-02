@@ -37,7 +37,7 @@ module SidebarView {
     <dt class={classes}>
       <a title={title} onclick={onclick}>
         <i class="fa fa-{icon}"/>
-        <span>{title}</span>
+        <span class="sidebar-menu-item-text">{title}</span>
         <div id="{id}_badge" class="badge_holder"/>
       </a>
     </dt>
@@ -128,7 +128,7 @@ module SidebarView {
     <dl class="list-unstyled {view_to_string(options.view)}">
       { if (options.search)
           <dd class="search">,
-            <a href="#search" class="fa fa-search hide" title="{@i18n("Search results")}"
+            <a href="#search" class="fa fa-search hide" title="{@intl("Search results")}"
                data-placement="right" rel="tooltip"></a>
           </dd>
         else <></> }

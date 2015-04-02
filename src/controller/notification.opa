@@ -34,6 +34,7 @@ type Notification.badges = {
 
 type Notification.Client.message =
   { Message.id received } or // Notification for received messages.
+  { Mode.t increment } or // Increment the badge associated with a mode.
   { Notification.badges badges } or
   { (string, xhtml) error } or
   { (string, float) fetching } or
@@ -136,14 +137,20 @@ module Notification {
 
   module Broadcast {
 
+    /** Increment the level of the badge associated to a mode. */
+    protected @async function increment(User.key key, string app) {
+      mode = ~{app, active: ""}
+      Session.send(cloud, {transmit: (key, {increment: mode})})
+    }
+
     /** Broadcast user badges. */
-    protected @async function badges(key) {
+    protected @async function badges(User.key key) {
       badges = FolderController.badges(key, true)
       Session.send(cloud, {transmit: (key, ~{badges})})
     }
 
     /** Notify receivers of a message. */
-    protected @async function received(mid, owners) {
+    protected @async function received(Message.id mid, owners) {
       List.iter(function (key) {
         // Team notifications are propagated to team users.
         if (Team.key_exists(key))

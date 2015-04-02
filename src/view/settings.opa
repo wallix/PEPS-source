@@ -39,9 +39,9 @@ SettingsView = {{
   @client
   check_html5_notifications(_) =
     if not(HTML5_Notifications.support()) then
-      #notif_status <- @i18n("Your browser does not support notifications. Please consider upgrading your browser.")
+      #notif_status <- @intl("Your browser does not support notifications. Please consider upgrading your browser.")
     else if not(HTML5_Notifications.enabled()) then
-      #html5_notifications <- <>{@i18n("You need to accept notifications in your browser.")} <a onclick={enable_browser_notifications}>{@i18n("Click here to request notifications.")}</a></>
+      #html5_notifications <- <>{@intl("You need to accept notifications in your browser.")} <a onclick={enable_browser_notifications}>{@intl("Click here to request notifications.")}</a></>
 
   /** {2} Signature input. */
 
@@ -51,7 +51,7 @@ SettingsView = {{
     SettingsController.save_user_signature(sgn, profile_updated)
 
   profile_updated(res) =
-    Notifications.info(AppText.Profile(), <>{@i18n("Profile updated")}</>)
+    Notifications.info(AppText.Profile(), <>{@intl("Profile updated")}</>)
 
   /** {2} Profile update. */
 
@@ -72,13 +72,13 @@ SettingsView = {{
           SettingsController.save_user_password(oldpassword, newpassword,
             | {success= _} ->
               do Dom.remove(#passwordmodal)
-              Notifications.info(AppText.Profile(), <>{@i18n("Password updated")}</>)
+              Notifications.info(AppText.Profile(), <>{@intl("Password updated")}</>)
             | ~{failure} ->
               Notifications.notify("passwordnotify", AppText.password(), <>{failure}</>, {error})
           )
         else if (newpassword == repeatpassword) then
-          Notifications.notify("passwordnotify", AppText.password(), <>{@i18n("Passwords do not match")}</>, {error})
-        else Notifications.notify("passwordnotify", AppText.password(), <>{@i18n("Invalid new password")}</>, {error})
+          Notifications.notify("passwordnotify", AppText.password(), <>{@intl("Passwords do not match")}</>, {error})
+        else Notifications.notify("passwordnotify", AppText.password(), <>{@intl("Invalid new password")}</>, {error})
 
       // Destroy the modal and return with no value.
       docancel(_evt) =
@@ -89,20 +89,20 @@ SettingsView = {{
         <div id="passwordnotify"/>
         {Form.wrapper(
           Form.form_group(
-            <input type=password id="oldpassword" class="form-control" placeholder="{@i18n("Previous password")}"></input>
+            <input type=password id="oldpassword" class="form-control" placeholder="{@intl("Previous password")}"></input>
           ) <+>
           Form.form_group(
-            <input type=password id="newpassword" class="form-control" placeholder="{@i18n("New password")}"></input>
+            <input type=password id="newpassword" class="form-control" placeholder="{@intl("New password")}"></input>
           ) <+>
           Form.form_group(
-            <input type=password id="repeatpassword" class="form-control" placeholder="{@i18n("Repeat password")}"></input>
+            <input type=password id="repeatpassword" class="form-control" placeholder="{@intl("Repeat password")}"></input>
           )
         , true)}
         </>
       ok = WB.Button.make({button= <>{AppText.Ok()}</> callback= doconfirm}, [{primary}])
       cancel = WB.Button.make({button= <>{AppText.Cancel()}</> callback= docancel}, [{`default`}])
       modal =
-        Modal.make("passwordmodal", <>{@i18n("Change password")}</>,
+        Modal.make("passwordmodal", <>{@intl("Change password")}</>,
           prompt, <>{cancel}{ok}</>,
           {Modal.default_options with backdrop= false static= false keyboard= false}
         )
@@ -130,7 +130,7 @@ SettingsView = {{
           format= UserController.format_contact
         }
         display = ContactView.edit_contact(contact, options)
-        password = WB.Button.make({button= <><i class="fa fa-refresh"/> {@i18n("Change password")}</> callback=passwordInput}, [{`default`}])
+        password = WB.Button.make({button= <><i class="fa fa-refresh"/> {@intl("Change password")}</> callback=passwordInput}, [{`default`}])
           |> Xhtml.update_class("btn-sm", _)
         Utils.panel_default(
           Utils.panel_heading(AppText.Profile()) <+>
@@ -173,49 +173,49 @@ SettingsView = {{
           </form>
       ))
 
-  supported_langs = ["en", "fr"]
-
-  render_lang(lang) =
-    match lang with
-    | "en" -> @i18n("English")
-    | "fr" -> @i18n("French")
-    | "C" -> "POSIX"
-    | s -> s
-    end
-
-  render_sel_lang(lang) =
-    mk_flag(code) = <img src="/resources/img/{code}.gif"/>
-    flags(lang) =
-      match lang with
-      | "en" -> ["gb", "us"]
-      | "fr" -> ["fr"]
-      | _    -> []
-      end
-    <>{List.map(mk_flag, flags(lang))} {render_lang(lang)}</>
-
   WI18n = {{
 
-    @private @client set_lang(lang) =
-      //do jlog("set_lang: lang=%y{lang}%d current=%c{I18n.lang()}%d")
-      //do jlog("set_lang: key=%r{thread_context().key}%d")
-      do I18n.set_lang(lang)
-      Client.reload()
+    @private localeToString(locale) =
+      match locale.language with
+      | "en" -> "English"
+      | "fr" -> "Français"
+      | "ja" -> "日本語"
+      | s -> s
+      end
 
-    select_lang(langs:list(I18n.language), lang_to_string, lang_to_xhtml) =
+    @private localeToHtml(locale) =
+      do Log.notice("[Settings]", "localeToHtml: {locale}")
+      flag(code) = <img src="/resources/img/{code}.gif"/>
+      flag =
+        match locale.language with
+        | "en" -> if (locale.region == "") then flag("US") else flag(locale.region)
+        | "fr" -> if (locale.region == "") then flag("FR") else flag(locale.region)
+        | _    -> <></>
+        end
+      <>{flag} {localeToString(locale)}</>
+
+    @private @client setLocale(id, _evt) =
+      locale = Dom.get_value(#{id})
+      match Intl.parseLocale(locale) with
+      | {some= locale} ->
+        do Intl.setLocale(locale)
+        do SettingsController.setLocale(locale)
+        Client.reload()
+      | _ -> void
+      end
+
+    @server_private localeSelector() =
       id = Dom.fresh_id()
-      lang_entry(lang) =
-        <option value="{lang}">
-          {lang_to_string(lang)}
-        </>
-      change_language() = Dom.get_value(#{id}) |> set_lang
+      entry(locale) = <option value="{Intl.localeToString(locale)}">{localeToString(locale)}</option>
+      // Multiple option selection.
       <div class="input-group">
         <span class="input-group-addon">
-          {@i18n(lang_to_xhtml)}
+          {localeToHtml(@locale)}
         </span>
-        <select class="form-control" id={id} onchange={_ -> change_language()}>
-          <option>{@i18n("Change language")}</>
-          {List.map(lang_entry, langs)}
-        </>
+        <select class="form-control" id={id} onchange={setLocale(id, _)}>
+          <option>{@intl("Change language")}</option>
+          {List.map(entry, Intl.listLocales())}
+        </select>
       </div>
 
   }} // END WI18N
@@ -232,7 +232,7 @@ SettingsView = {{
       do if (view == {icons})
       then Dom.remove_class(#main, "narrow")
       else Dom.add_class(#main, "narrow")
-      Notifications.info(AppText.Display(), <>{@i18n("Preferences saved")}</>)
+      Notifications.info(AppText.Display(), <>{@intl("Preferences saved")}</>)
     | {failure=s} -> Notifications.error(AppText.Display(), <>{s}</>)
 
   @client @async
@@ -257,26 +257,26 @@ SettingsView = {{
       <label for="icons_view_user" class="radio-inline">
         {<input type="radio" name="view" id=#icons_view_user/>
          |> check_radio_btn(view, {icons}, _)}
-        {@i18n("Only icons")}
+        {@intl("Only icons")}
       </label>
     folders_btn =
       <label for="folders_view_user" class="radio-inline">
         {<input type="radio" name="view" id=#folders_view_user/>
          |> check_radio_btn(view, {folders}, _)}
-        {@i18n("Basic")}
+        {@intl("Basic")}
       </label>
     Utils.panel_default(
       Utils.panel_heading(AppText.Display()) <+>
       Utils.panel_body(
         Form.wrapper(
           Form.label(
-            @i18n("Default side menu "), "view_user",
+            @intl("Default side menu "), "view_user",
             check_radio_btn(view, {icons}, icons_btn) <+>
             check_radio_btn(view, {folders}, folders_btn)
           ) <+>
           <>
           <div class="form-group">
-            <label>{@i18n("Desktop notifications")}</label>
+            <label>{@intl("Desktop notifications")}</label>
             <div class="checkbox">
               <label>
                 { if notifs then
@@ -296,7 +296,7 @@ SettingsView = {{
                     <input type="checkbox" id=#search_includes_send checked="checked"/>
                   else
                     <input type="checkbox" id=#search_includes_send/>
-                } {if sis then @i18n("Include Sent") else @i18n("Do not include Sent")}
+                } {if sis then @intl("Include Sent") else @intl("Do not include Sent")}
               </label>
             </div>
           </div>
@@ -308,7 +308,7 @@ SettingsView = {{
                     <input type="checkbox" id=#onboarding checked="checked"/>
                   else
                     <input type="checkbox" id=#onboarding/>
-                } {if onboarding then AppText.Onboarding() else @i18n("Onboarding disabled")}
+                } {if onboarding then AppText.Onboarding() else @intl("Onboarding disabled")}
               </label>
             </div>
           </div>
@@ -328,23 +328,18 @@ SettingsView = {{
           //   <p id=#html5_notifications onready={check_html5_notifications}></p>
           // ) <+>
           <div class="form-group">{
-            WB.Button.make({button=<>{@i18n("Save changes")}</> callback=do_save_preferences(state, _)}, [{success}])
-            |> Xhtml.add_attribute_unsafe("data-complete-text", @i18n("Save changes"), _)
+            WB.Button.make({button=<>{@intl("Save changes")}</> callback=do_save_preferences(state, _)}, [{success}])
+            |> Xhtml.add_attribute_unsafe("data-complete-text", @intl("Save changes"), _)
             |> Xhtml.add_attribute_unsafe("data-loading-text", AppText.saving(), _)
             |> Xhtml.add_id(some("save_preferences_button"), _)
           }</div>
         , false)
       )) <+>
       Utils.panel_default(
-        Utils.panel_heading(@i18n("Language")) <+>
+        Utils.panel_heading(@intl("Language")) <+>
         Utils.panel_body(
-          Form.wrapper(
-            <div class="form-group">
-              <>{WI18n.select_lang(supported_langs, render_lang, render_sel_lang)}</>
-            </div>
-          , false)
-
-      ))
+          Form.wrapper(<div class="form-group">{WI18n.localeSelector()}</div>, false)
+        ))
 
   @server_private
   build_password(state:Login.state) = <></>

@@ -32,6 +32,7 @@ Scheduler.push(function() {
    * Some of these need access to DB data etc.
    */
   Admin.init()
+  App.init()
   SolrJournal.init()
   Label.init() /** Pre-created labels. */
 

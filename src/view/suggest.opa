@@ -50,12 +50,12 @@ function do_save(current, _) {
 		 #{"filters-pane"} = display_by_label(current.label_id)
 		 #suggestion_editor = edit(current)
 	} else {
-	 	Notifications.error("Filter", <>{@i18n("Could not save")}</>)
+	 	Notifications.error("Filter", <>{@intl("Could not save")}</>)
 	}
 }
 
 function do_delete(current) {
-	message = if (SuggestController.delete(current.id)) { AppText.Deleted() } else { @i18n("Could not delete") }
+	message = if (SuggestController.delete(current.id)) { AppText.Deleted() } else { @intl("Could not delete") }
 	#{"filters-pane"} = display_by_label(current.label_id)
 	#suggestion_editor = <p>{message}</p>
 }
@@ -70,7 +70,7 @@ function get_form(current) {
 }
 
 function delete_action(current, _) {
-	if (Client.confirm(@i18n("Are you sure you want to delete this filter?")))
+	if (Client.confirm(@intl("Are you sure you want to delete this filter?")))
 		{ do_delete(current) }
 }
 
@@ -90,18 +90,18 @@ function edit(current) {
 	Form.wrapper(
 	<div class="pane-heading">
 		<div class="pull-right">{delete_button(current)}</div>
-		<h3>{if (current.id != Suggest.dummy_id) {@i18n("Edit filter")} else {@i18n("Create filter")}}</h3>
+		<h3>{if (current.id != Suggest.dummy_id) {@intl("Edit filter")} else {@intl("Create filter")}}</h3>
 	</div> <+>
-      Form.line({Form.Default.line with label: @i18n("Expression"), id: "suggest_expression", ~value}) <+>
+      Form.line({Form.Default.line with label: @intl("Expression"), id: "suggest_expression", ~value}) <+>
       Form.label(
-        @i18n("Type"), "",
+        @intl("Type"), "",
         Radio.list([
           make_radio("keyword", "label-warning", keyword_type),
           make_radio("recipient", "label-default", not(keyword_type))
         ])
       ) <+>
       <div class="form-group">
-      	{WB.Button.make({button: <>{@i18n("Save changes")}</>, callback: do_save(current, _)}, [{primary}])}
+      	{WB.Button.make({button: <>{@intl("Save changes")}</>, callback: do_save(current, _)}, [{primary}])}
       </div>
     , false)
 }
@@ -111,7 +111,7 @@ function display_edit(current, _) {
 		case {~some}:
 			#suggestion_editor = edit(some)
 		default:
-			#suggestion_editor = <div class="error">{@i18n("Could not get suggestion content")}</div>
+			#suggestion_editor = <div class="error">{@intl("Could not get suggestion content")}</div>
 	}
 }
 
@@ -130,10 +130,10 @@ function display(Suggest.suggestion suggestion, show_label) {
 		<div onclick={action_edit}>
 		{ match (suggestion.criterion) {
 			case {~keyword, ...}:
-				<span class="label label-warning">{@i18n("keyword")}</span>
+				<span class="label label-warning">{@intl("keyword")}</span>
 				<span class="keyword">{keyword}</span>
 			case {~recipient}:
-				<span class="label label-default">{@i18n("recipient")}</span>
+				<span class="label label-default">{@intl("recipient")}</span>
 				<span class="recipient">{recipient}</span>
 		}}
 		</div>
@@ -147,7 +147,7 @@ function display_by_label(label_id) {
 	  <div class="col-md-4 pane-inner-left">
 	  	<div class="pane-heading">
   			<button type="button" onclick={action_new} class="btn btn-sm btn-default pull-right">
-  				<i class="fa fa-plus-circle-o"/> {@i18n("New filter")}
+  				<i class="fa fa-plus-circle-o"/> {@intl("New filter")}
   			</button>
 			<h3>Filters</h3>
 		</div>

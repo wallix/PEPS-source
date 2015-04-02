@@ -95,7 +95,7 @@ module Content {
         if (Dom.is_empty(#loading-content)) {
           loading =
             <div id="loading-content" class="loading-content" >
-              <img src="/resources/img/loader.gif" alt="{@i18n("Loading...")}"/>
+              <img src="/resources/img/loader.gif" alt="{@intl("Loading...")}"/>
             </div>;
           #content = loading
         } else void
@@ -111,19 +111,19 @@ module Content {
 
     login_please =
       make_alert(
-        @i18n("Your session has expired!"),
-        <>{@i18n("Please log in to access this resource")}</>
+        @intl("Your session has expired!"),
+        <>{@intl("Please log in to access this resource")}</>
       )
 
     non_existent_resource =
       make_alert(
-        @i18n("Oops!"),
-        <>{@i18n("Looks like the resource you are looking for does not exist ...")}</>
+        @intl("Oops!"),
+        <>{@intl("Looks like the resource you are looking for does not exist ...")}</>
       )
 
     not_allowed_message =
       make_alert(
-        @i18n("Sorry!"),
+        @intl("Sorry!"),
         XmlConvert.of_alpha(AppText.not_allowed_message())
       )
 
@@ -216,6 +216,7 @@ module Content {
           ClientEvent.remove_inactivity_delay(ctx)
           none
         })
+        Intl.setLocale(User.getLocale(key))
         Notification.register(key, channel)
         // Update profile picture.
         match (Option.bind(RawFile.get_thumbnail, User.get_picture(state.key))) {
@@ -230,7 +231,7 @@ module Content {
         <>
          <img id="compose_file_loader" src="/resources/img/loader.gif" style={
          [Css_build.display({css_none})]}/>
-         {@i18n("Drop files here")}
+         {@intl("Drop files here")}
         </>
 
     // client function clear_modal_errors() {
@@ -253,7 +254,7 @@ module Content {
       pass = Dom.get_value(#pass) |> String.trim
       passrepeat = Dom.get_value(#passrepeat) |> String.trim
 
-      if (pass != passrepeat || pass == "") Notifications.error("Error", <>{@i18n("Invalid password")}</>)
+      if (pass != passrepeat || pass == "") Notifications.error("Error", <>{@intl("Invalid password")}</>)
       else do_setup_admin(pass)
     }
 
@@ -265,7 +266,7 @@ module Content {
       </div>
       { if (not(Admin.only_admin_can_register())) {
           <a onclick={function(_){ #signin_well = signup(state) }}>
-            {@i18n("Don't have an account? Sign up")}
+            {@intl("Don't have an account? Sign up")}
           </a>
         }
         else <></>
@@ -276,7 +277,7 @@ module Content {
     protected function signup(state) {
       AdminView.register(state, none) <+>
       <a onclick={function(_){ #signin_well = signin(state) }}>
-        {@i18n("Already have an account? Sign in")}
+        {@intl("Already have an account? Sign in")}
       </a>
     }
 
@@ -302,18 +303,18 @@ module Content {
           <div class="app-icon"></div>
           <h1>{Admin.logo()}</h1>
           <div class="well">
-            <h3>{@i18n("Setup your PEPS in two steps")}</h3>
+            <h3>{@intl("Setup your PEPS in two steps")}</h3>
             <form role="form" class="form-simple">
               <div class="form-group">
-                <label class="control-label" for="domain">{@i18n("Admin Password")}</label>
-                <input id="pass" type="password" class="form-control" placeholder="{@i18n("Password")}"/>
+                <label class="control-label" for="domain">{@intl("Admin Password")}</label>
+                <input id="pass" type="password" class="form-control" placeholder="{@intl("Password")}"/>
               </div>
               <div class="form-group">
-                <label class="control-label" for="domain">{@i18n("Repeat")}</label>
-                <input id="passrepeat" type="password" class="form-control" placeholder="{@i18n("Password repeat")}"/>
+                <label class="control-label" for="domain">{@intl("Repeat")}</label>
+                <input id="passrepeat" type="password" class="form-control" placeholder="{@intl("Password repeat")}"/>
               </div>
               <div class="form-group">
-                <button type="button" class="btn btn-block btn-primary" onclick={setup_admin}>{@i18n("Next")}</button>
+                <button type="button" class="btn btn-block btn-primary" onclick={setup_admin}>{@intl("Next")}</button>
               </div>
             </form>
           </div>
@@ -498,6 +499,8 @@ module Content {
     // Activate topbar icon.
     Dom.add_class(#{name}, "active")
     Dom.add_class(#{"sidebar_{name}"}, "app-visible")
+    // Reset badges.
+    Notifications.Badge.reset(mode)
   }
 
   /** Hide an app's sidebar. */

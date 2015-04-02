@@ -78,7 +78,7 @@ module SearchMongo {
               results = List.filter_map(extract(fields,_), results)
               results = List.sort_by(_.f1,results)
               {success: results}
-            default: {failure: {Error: "Mongo.text: {@i18n("no results field in reply")}"}}
+            default: {failure: {Error: "Mongo.text: {@intl("no results field in reply")}"}}
           }
       case ~{failure}: ~{failure}
     }

@@ -34,16 +34,16 @@ module FolderController {
     debug("save: id={id} name={name}")
     issystem = Option.map(Folder.is_system, id) ? false
     if (issystem)
-      {failure: @i18n("Cannot edit system folders")}
+      {failure: @intl("Cannot edit system folders")}
     else if (name == "")
-      {failure: @i18n("Please enter a folder name")}
+      {failure: @intl("Please enter a folder name")}
     else
       match (id) {
         case {some: id}:
           if (Folder.get_name(state.key, id) == {some: name})
             {success: id}
           else if (Folder.exists(state.key, name))
-            {failure: @i18n("The folder [{name}] already exists")}
+            {failure: @intl("The folder [{name}] already exists")}
           else {
             // Add journal entry.
             mid = Folder.sofid(id) |> Message.midofs
@@ -53,7 +53,7 @@ module FolderController {
           }
         default:
           if (Folder.exists(state.key, name))
-            {failure: @i18n("The folder [{name}] already exists")}
+            {failure: @intl("The folder [{name}] already exists")}
           else {
             folder = Folder.create(state.key, name)
             // Add journal entry.
@@ -71,9 +71,9 @@ module FolderController {
   protected function delete(Login.state state, Folder.id id, Mail.box dest) {
     debug("delete: id={id}")
     if (Folder.is_system(id))
-      {failure: @i18n("Cannot edit system folders")}
+      {failure: @intl("Cannot edit system folders")}
     else if (not(Folder.id_exists(state.key, id)))
-      {failure: @i18n("Folder does not exist")}
+      {failure: @intl("Folder does not exist")}
     else {
       Folder.delete(state.key, id)
       box = {custom: id}

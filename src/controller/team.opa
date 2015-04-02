@@ -77,13 +77,13 @@ module TeamController {
     else if (not(allowed))
       Utils.failure(AppText.not_allowed_action(), {forbidden})
     else if (name == "")
-      Utils.failure(@i18n("Please enter a team name"), {bad_request})
+      Utils.failure(@intl("Please enter a team name"), {bad_request})
     // The condition prevname != {some: team_name} eliminates
     // the case where a team is modified but not its name.
     else if (prevname != {some: name} && Team.team_exists(name, parent))
-      Utils.failure(@i18n("The team named [{name}] already exists"), {bad_request})
+      Utils.failure(@intl("The team named [{name}] already exists"), {bad_request})
     else if (String.contains(name, ","))
-      Utils.failure(@i18n("The team name must not contain the character ','"), {bad_request})
+      Utils.failure(@intl("The team name must not contain the character ','"), {bad_request})
     else
       match (key) {
         case {some: key}:
@@ -113,7 +113,7 @@ module TeamController {
     if (not(Login.is_logged(state)))
       Utils.Failure.login()
     else if (not(exists))
-      Utils.failure(@i18n("Non existent team"), {wrong_address})
+      Utils.failure(@intl("Non existent team"), {wrong_address})
     else if (not(allowed))
       Utils.failure(AppText.not_allowed_action(), {forbidden})
     else {

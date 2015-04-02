@@ -89,6 +89,7 @@ type User.filter = {
 
 type User.preferences = {
   Sidebar.view view, // FIXME: to remove
+  Intl.locale locale, // Language selection.
   bool notifications,
   bool search_includes_send,
   Topbar.preferences topbar,
@@ -114,6 +115,7 @@ database stringmap(string) /webmail/passwords
 database /webmail/users[_]/status = {lambda}
 database /webmail/users[_]/blocked = {false}
 database /webmail/preferences[_]/view = {icons}
+database /webmail/preferences[_]/locale = Intl.defaultLocale
 database /webmail/preferences[_]/notifications = {true}
 database /webmail/preferences[_]/search_includes_send = {true}
 database /webmail/preferences[_]/topbar/hd/mode = {error}
@@ -285,9 +287,9 @@ module User {
                 /webmail/passwords[key] <- Uint8Array.encodeBase64(hash)
                 {success}
               default:
-                {failure: @i18n("Undefined user or invalid password")}
+                {failure: @intl("Undefined user or invalid password")}
             }
-          default: {failure: @i18n("Undefined user or invalid password")}
+          default: {failure: @intl("Undefined user or invalid password")}
         }
       })
     }
@@ -530,6 +532,11 @@ module User {
     List.filter_map(Team.get, _)
   }
 
+  /** Return the preferred user locale. */
+  function getLocale(User.key key) {
+    ?/webmail/preferences[key]/locale ? @locale
+  }
+
   /** {1} Checks and properties. */
 
   /** Check for pre-existant elements (private versions). */
@@ -614,6 +621,11 @@ module User {
   function add_preferences(User.key key, User.preferences preferences) {
     /webmail/preferences[key] <- preferences;
     get_cached_user.invalidate(key)
+    get_cached_preferences.invalidate(key)
+  }
+
+  function setLocale(User.key key, Intl.locale locale) {
+    /webmail/preferences[key] <- ~{locale}
     get_cached_preferences.invalidate(key)
   }
 
@@ -714,7 +726,7 @@ module User {
 
   function remove(User.key key, string pass) {
     if (Password.verify(key, pass)) unsafe_remove(key)
-    else error(@i18n("Delete: invalid password provided for user [{key}]"))
+    else error(@intl("Delete: invalid password provided for user [{key}]"))
   }
 
   function unsafe_remove_password(User.key key) {

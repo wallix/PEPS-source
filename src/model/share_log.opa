@@ -46,7 +46,7 @@ module ShareLog {
 
   function create(File.id file, User.key sharer, list((User.key, FileToken.id)) sharees) {
     if (sharees != []) {
-      log("{sharer} {@i18n("Sharing {file} with")} {String.concat(", ", List.map(_.f1, sharees))}")
+      log("{sharer} {@intl("Sharing {file} with")} {String.concat(", ", List.map(_.f1, sharees))}")
       add(make(file, sharer, sharees))
     }
   }
