@@ -10,7 +10,8 @@ PCK = tablesorter.opx \
 	resumable.opx \
 	html2text.opx \
 	tweetnacl.server.opx \
-	tweetnacl.client.opx
+	tweetnacl.client.opx \
+	select2.opx
 
 PLUGIN =
 PLUGINDIR =
