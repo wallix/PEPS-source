@@ -327,6 +327,11 @@ module Content {
      * URN is some if the user is logged in, else none.
      */
     client function init_client(option(URN.t) urn, _) {
+      errTitle = @intl("Connection lost")
+      errBody = <div>{@intl("Please check your network connectivity and then refresh the page")}</div>
+      PingClient.add_connection_lost_handler(function() {
+        Notifications.error(errTitle, errBody)
+      });
       Dom.bind_with_options(
         Dom.select_document(),
         {keypress}, Keyboard.handler,
