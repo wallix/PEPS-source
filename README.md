@@ -11,9 +11,9 @@ If you just want to use and deploy PEPS, you may not need building from source b
 To build PEPS, you need to:
 
 - install [Opa](https://github.com/MLstate/opalang)
-- install lessc (for instance through npm)
-- generate style by typing make style
-- compile PEPS by typing make
+- install lessc (for instance through `npm -g install less`)
+- generate style by typing `make style`
+- compile PEPS by typing `make`
 - install TLS certificates in `/etc/peps/server.key` and `/etc/peps/server.crt`
 - launch with `./peps.exe`
 - install required npm dependencies as told
