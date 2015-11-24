@@ -156,7 +156,7 @@ module DirectoryView {
 
 	/** Handles associated with table directoru lines. */
   function handles(id, name, parent, path) {
-    [ { name: {mousedown}, value: {expr: @public_env(select(id, name, parent, _))} } ]
+    [ { name: {click}, value: {expr: @public_env(select(id, name, parent, _))} } ]
       // { name: {dblclick},
       //   value: {expr: function(_e) { Content.update(URN.make({files: ""}, path), false) }} } ]
   }

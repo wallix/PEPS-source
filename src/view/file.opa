@@ -593,7 +593,7 @@ module FileView {
   }
 
   function handles(id, name, access, security, parent, clabels, file) {
-    [ {name:{mousedown}, value: {expr: select(id, name, access, security, parent, clabels, file, _)}} ]
+    [ {name:{click}, value: {expr: select(id, name, access, security, parent, clabels, file, _)}} ]
   }
 
   /**
